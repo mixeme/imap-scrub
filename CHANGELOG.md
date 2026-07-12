@@ -7,6 +7,7 @@
 - Clarify debug output when messages are skipped: show internal date and cutoff in local time, and note when the envelope `Date` header differs
 - Add local build scripts for Windows and Linux amd64 binaries (from axllent/imap-scrub#14)
 - Add a Docker-based Linux build script
+- Add `pass_file` config option to load IMAP password from a file (ported from axllent/imap-scrub#13, thanks @Carsten-Leue)
 
 
 ## [0.0.6]

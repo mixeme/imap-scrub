@@ -93,6 +93,9 @@ func main() {
 
 	if printConfig {
 		lib.Config.Pass = "**********"
+		if lib.Config.PassFile != "" {
+			lib.Config.PassFile = "**********"
+		}
 		lib.PrettyPrint(lib.Config)
 		os.Exit(0)
 	}
