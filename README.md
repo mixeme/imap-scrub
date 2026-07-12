@@ -41,12 +41,12 @@ rules:
     older_than: 365              # days
     actions: remove_attachments
   - mailbox: "[Gmail]/All Mail"
-    from: invitations@linkedin.com
+    from: invitations@linkedin.com, updates@linkedin.com
     older_than: 30
     actions: delete
   - mailbox: "[Gmail]/All Mail"
     from: myclient@example.com
-    min_size: 512 
+    min_size: 512
     older_than: 90
     actions: save_attachments, remove_attachments
 ```
@@ -102,7 +102,7 @@ rules:
   - mailbox:         string # IMAP mailbox name see below)
     min_size:        0      # minimum message size in kB
     older_than:      0      # older than x days (see below)
-    from:            string # match "From" field
+    from:            string # match "From" field, comma-separated for OR matching
     to:              string # match "To" field
     subject:         string # match email subject
     body:            string # match email body
@@ -133,6 +133,19 @@ name: My Gmail Account
 host: imap.gmail.com
 user: example-user@gmail.com
 pass_file: /home/me/.secrets/gmail-password.txt
+```
+
+
+### Option: `from`
+
+The `from` option matches the email `From` header.
+
+You can provide either a single sender or a comma-separated list. When multiple senders are provided, a message matches if it matches any one of them.
+
+Example:
+
+```yaml
+from: billing@example.com, invoices@example.com, receipts@example.com
 ```
 
 

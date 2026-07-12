@@ -200,11 +200,6 @@ func main() {
 
 		headerSearch := textproto.MIMEHeader{}
 
-		if rule.From != "" {
-			sFilters = append(sFilters, fmt.Sprintf("from: \"%s\"", rule.From))
-			headerSearch["From"] = append(headerSearch["From"], rule.From)
-		}
-
 		if rule.To != "" {
 			sFilters = append(sFilters, fmt.Sprintf("to: \"%s\"", rule.To))
 			headerSearch["To"] = append(headerSearch["To"], rule.To)
@@ -214,21 +209,63 @@ func main() {
 			headerSearch["Subject"] = append(headerSearch["Subject"], rule.Subject)
 		}
 
+		baseCriteria := crit
 		if len(headerSearch) > 0 {
-			crit.Header = headerSearch
+			baseCriteria.Header = headerSearch
 		}
 
-		lib.Log.DebugF("Searching \"%s\" for %s", rule.Mailbox, strings.Join(sFilters, ", "))
+		searchDescriptions := append([]string{}, sFilters...)
+		searchCriteria := []*imap.SearchCriteria{&baseCriteria}
+
+		if rule.From != "" {
+			fromTerms := []string{}
+			fromCriteria := []*imap.SearchCriteria{}
+			for _, sender := range strings.Split(rule.From, ",") {
+				sender = strings.TrimSpace(sender)
+				if sender == "" {
+					continue
+				}
+				fromTerms = append(fromTerms, sender)
+				senderCriteria := baseCriteria
+				senderCriteria.Header = make(textproto.MIMEHeader, len(baseCriteria.Header)+1)
+				for key, values := range baseCriteria.Header {
+					senderCriteria.Header[key] = append([]string{}, values...)
+				}
+				senderCriteria.Header["From"] = []string{sender}
+				fromCriteria = append(fromCriteria, &senderCriteria)
+			}
+			if len(fromCriteria) > 0 {
+				searchDescriptions = append(searchDescriptions, fmt.Sprintf("from any of: \"%s\"", strings.Join(fromTerms, "\", \"")))
+				searchCriteria = fromCriteria
+			}
+		}
+
+		lib.Log.DebugF("Searching \"%s\" for %s", rule.Mailbox, strings.Join(searchDescriptions, ", "))
 
 		// search
-		searchRes, err := cReader.UidSearch(&crit)
-		if err != nil {
-			lib.Log.Errorf(err.Error())
+		searchResMap := map[uint32]struct{}{}
+		for _, criteria := range searchCriteria {
+			ids, err := cReader.UidSearch(criteria)
+			if err != nil {
+				lib.Log.Errorf(err.Error())
+				searchResMap = nil
+				break
+			}
+			for _, id := range ids {
+				searchResMap[id] = struct{}{}
+			}
+		}
+		if searchResMap == nil {
 			continue
 		}
 
+		searchRes := make([]uint32, 0, len(searchResMap))
+		for id := range searchResMap {
+			searchRes = append(searchRes, id)
+		}
+
 		if len(searchRes) <= 0 {
-			lib.Log.DebugF("%s returned 0 results from the last %d days", rule.Mailbox, rule.OlderThan)
+			lib.Log.DebugF("%s returned 0 results for %s", rule.Mailbox, strings.Join(searchDescriptions, ", "))
 			continue
 		}
 
