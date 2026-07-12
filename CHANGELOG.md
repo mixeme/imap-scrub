@@ -5,6 +5,8 @@
 - Fix `older_than` to use the IMAP internal delivery date instead of the sender-controlled `Date` header (ported from axllent/imap-scrub#14)
 - Normalize the cutoff to local midnight and re-verify each fetched message before delete or attachment actions
 - Clarify debug output when messages are skipped: show internal date and cutoff in local time, and note when the envelope `Date` header differs
+- Add local build scripts for Windows and Linux amd64 binaries (from axllent/imap-scrub#14)
+- Add a Docker-based Linux build script
 
 
 ## [0.0.6]
