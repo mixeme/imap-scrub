@@ -32,6 +32,8 @@ name: My Gmail Account
 host: imap.gmail.com
 user: example-user@gmail.com
 pass: MySecretPassword123
+# Alternatively, use pass_file to load password from a file:
+# pass_file: /path/to/password-file.txt
 save_path: /home/me/email-files
 rules:
   - mailbox: "[Gmail]/All Mail"  # IMAP mailbox name
@@ -92,7 +94,8 @@ host:      string # IMAP hostname
 ssl:       true   # use SSL (default true)
 port:      993    # IMAP port number (default 993 if SSL is true, else 143)
 user:      string # IMAP username
-pass:      string # IMAP password
+pass:      string # IMAP password (use either pass or pass_file)
+pass_file: string # path to file containing IMAP password (optional, takes precedence over pass)
 save_path: string # local directory to save attachments (default current dir)
 use_trash: false  # see below
 rules:
@@ -107,6 +110,29 @@ rules:
     actions:         string # see below
     include_unread:  false  # include unread messages (default false)
     include_starred: false  # include starred messages (default false)
+```
+
+
+### Option: `pass_file`
+
+The `pass_file` option allows you to store your IMAP password in a separate file instead of directly in the configuration file. This is useful for security purposes, as it allows you to keep sensitive credentials separate from your configuration.
+
+When `pass_file` is specified, the password will be read from the file (with whitespace trimmed) and will take precedence over the `pass` field. If the file cannot be read, the application will exit with an error.
+
+**Security recommendation:** Set the directory containing the password file to mode `0700` and the password file itself to mode `0600` to ensure only the owner can access it:
+
+```bash
+chmod 0700 /home/me/.secrets
+chmod 0600 /home/me/.secrets/gmail-password.txt
+```
+
+Example:
+
+```yaml
+name: My Gmail Account
+host: imap.gmail.com
+user: example-user@gmail.com
+pass_file: /home/me/.secrets/gmail-password.txt
 ```
 
 
