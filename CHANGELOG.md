@@ -9,6 +9,8 @@
 - Add a Docker-based Linux build script
 - Add `pass_file` config option to load IMAP password from a file (ported from axllent/imap-scrub#13, thanks @Carsten-Leue)
 - Support comma-separated `from` filter with OR matching (ported from axllent/imap-scrub#13, thanks @Carsten-Leue)
+- Add unit tests and GitHub Actions CI for core date, search, and pass_file logic
+- Add optional IMAP integration tests and mailbox seeding script (`testdata/imap/`)
 
 
 ## [0.0.6]

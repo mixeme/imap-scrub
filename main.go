@@ -180,7 +180,7 @@ func main() {
 			// IMAP BEFORE uses internal date (server delivery time), not the sender's
 			// Date header. The protocol only supports whole dates, so the server search
 			// is a broad filter; messageIsOlderThan() re-checks each result precisely.
-			olderThanCutoff = beginningOfDay(now.AddDate(0, 0, -rule.OlderThan))
+			olderThanCutoff = lib.BeginningOfDay(now.AddDate(0, 0, -rule.OlderThan))
 			crit.Before = olderThanCutoff
 		}
 
@@ -209,60 +209,35 @@ func main() {
 			headerSearch["Subject"] = append(headerSearch["Subject"], rule.Subject)
 		}
 
-		baseCriteria := crit
 		if len(headerSearch) > 0 {
-			baseCriteria.Header = headerSearch
+			crit.Header = headerSearch
 		}
 
 		searchDescriptions := append([]string{}, sFilters...)
-		searchCriteria := []*imap.SearchCriteria{&baseCriteria}
-
-		if rule.From != "" {
-			fromTerms := []string{}
-			fromCriteria := []*imap.SearchCriteria{}
-			for _, sender := range strings.Split(rule.From, ",") {
-				sender = strings.TrimSpace(sender)
-				if sender == "" {
-					continue
-				}
-				fromTerms = append(fromTerms, sender)
-				senderCriteria := baseCriteria
-				senderCriteria.Header = make(textproto.MIMEHeader, len(baseCriteria.Header)+1)
-				for key, values := range baseCriteria.Header {
-					senderCriteria.Header[key] = append([]string{}, values...)
-				}
-				senderCriteria.Header["From"] = []string{sender}
-				fromCriteria = append(fromCriteria, &senderCriteria)
-			}
-			if len(fromCriteria) > 0 {
-				searchDescriptions = append(searchDescriptions, fmt.Sprintf("from any of: \"%s\"", strings.Join(fromTerms, "\", \"")))
-				searchCriteria = fromCriteria
-			}
+		searchCriteria, fromDescription := lib.FromSearchCriteria(crit, rule.From)
+		if fromDescription != "" {
+			searchDescriptions = append(searchDescriptions, fromDescription)
 		}
 
 		lib.Log.DebugF("Searching \"%s\" for %s", rule.Mailbox, strings.Join(searchDescriptions, ", "))
 
 		// search
-		searchResMap := map[uint32]struct{}{}
+		idGroups := make([][]uint32, 0, len(searchCriteria))
+		searchFailed := false
 		for _, criteria := range searchCriteria {
 			ids, err := cReader.UidSearch(criteria)
 			if err != nil {
 				lib.Log.Errorf(err.Error())
-				searchResMap = nil
+				searchFailed = true
 				break
 			}
-			for _, id := range ids {
-				searchResMap[id] = struct{}{}
-			}
+			idGroups = append(idGroups, ids)
 		}
-		if searchResMap == nil {
+		if searchFailed {
 			continue
 		}
 
-		searchRes := make([]uint32, 0, len(searchResMap))
-		for id := range searchResMap {
-			searchRes = append(searchRes, id)
-		}
+		searchRes := lib.UnionUIDs(idGroups...)
 
 		if len(searchRes) <= 0 {
 			lib.Log.DebugF("%s returned 0 results for %s", rule.Mailbox, strings.Join(searchDescriptions, ", "))
@@ -306,7 +281,7 @@ func main() {
 			// IMAP BEFORE is date-only and may return messages near the cutoff
 			// (e.g. UTC calendar day differs from local). Skip anything not strictly
 			// older than the cutoff before listing or mutating.
-			if !olderThanCutoff.IsZero() && !messageIsOlderThan(msg, olderThanCutoff) {
+			if !olderThanCutoff.IsZero() && !lib.MessageIsOlderThan(msg, olderThanCutoff) {
 				continue
 			}
 
@@ -376,52 +351,4 @@ func main() {
 			lib.Log.DebugF("=====\nTotal size: %s\n=====\n", lib.ByteCountSI(totalSize))
 		}
 	}
-}
-
-// beginningOfDay returns local midnight for t, preserving its location.
-// older_than cutoffs are anchored to the user's calendar day, not UTC.
-func beginningOfDay(t time.Time) time.Time {
-	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location())
-}
-
-// messageIsOlderThan returns true when msg was delivered strictly before cutoff.
-// cutoff is always local midnight from beginningOfDay().
-func messageIsOlderThan(msg *imap.Message, cutoff time.Time) bool {
-	// Messages without an internal date cannot be safely matched against older_than.
-	if msg.InternalDate.IsZero() {
-		lib.Log.WarningF("Skipping UID %d: message has no internal date", msg.Uid)
-		return false
-	}
-
-	// Keep only messages strictly older than the cutoff; anything on or after it
-	// must be left untouched.
-	if !msg.InternalDate.Before(cutoff) {
-		// Log in the cutoff timezone so internal date and cutoff are comparable.
-		// RFC3339 mixed UTC/local was confusing (e.g. "June 14Z" vs "June 15 +03").
-		loc := cutoff.Location()
-		const localFmt = "2006-01-02 15:04:05 MST"
-		internalLocal := msg.InternalDate.In(loc)
-		cutoffLocal := cutoff.In(loc)
-		lib.Log.DebugF(
-			"Skipping UID %d: internal date %s is not before older_than cutoff %s",
-			msg.Uid,
-			internalLocal.Format(localFmt),
-			cutoffLocal.Format(localFmt),
-		)
-		// The envelope Date header is what users see in mail clients; when it
-		// falls on a different local calendar day than internal date, explain why
-		// older_than still uses internal delivery time.
-		if msg.Envelope != nil && !msg.Envelope.Date.IsZero() {
-			envelopeLocal := msg.Envelope.Date.In(loc)
-			if envelopeLocal.Format("2006-01-02") != internalLocal.Format("2006-01-02") {
-				lib.Log.DebugF(
-					"  envelope Date header is %s (older_than uses internal delivery date, not Date header)",
-					envelopeLocal.Format(localFmt),
-				)
-			}
-		}
-		return false
-	}
-
-	return true
 }

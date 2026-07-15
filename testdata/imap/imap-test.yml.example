@@ -1,0 +1,9 @@
+name: IMAP-Scrub Test
+host: imap.example.com
+ssl: true
+port: 993
+user: test@example.com
+pass_file: dev/imap-test.pass
+save_path: dev/test-attachments
+use_trash: true
+rules: []

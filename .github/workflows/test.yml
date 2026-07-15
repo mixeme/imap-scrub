@@ -1,0 +1,51 @@
+name: Test
+
+on:
+  push:
+    branches: [develop]
+  pull_request:
+    branches: [develop]
+
+jobs:
+  unit:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.20"
+      - name: Run unit tests
+        run: go test ./...
+
+  integration:
+    name: Integration tests
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.repository == 'mixeme/imap-scrub'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.20"
+      - name: Run integration tests
+        env:
+          IMAP_TEST_HOST: ${{ secrets.IMAP_TEST_HOST }}
+          IMAP_TEST_USER: ${{ secrets.IMAP_TEST_USER }}
+          IMAP_TEST_PASS: ${{ secrets.IMAP_TEST_PASS }}
+        run: |
+          if [ -z "$IMAP_TEST_HOST" ]; then
+            echo "IMAP secrets not configured; skipping integration tests"
+            exit 0
+          fi
+          cat > dev/imap-test.yml <<EOF
+          name: IMAP-Scrub Test
+          host: ${IMAP_TEST_HOST}
+          ssl: true
+          port: 993
+          user: ${IMAP_TEST_USER}
+          pass: ${IMAP_TEST_PASS}
+          save_path: /tmp/imap-scrub-test
+          use_trash: true
+          rules: []
+          EOF
+          go test -tags=integration ./lib -run TestIntegration -count=1
