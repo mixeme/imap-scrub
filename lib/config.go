@@ -39,6 +39,7 @@ type Rule struct {
 	Mailbox        string `yaml:"mailbox"`
 	Size           uint32 `yaml:"min_size"`   // KB
 	OlderThan      int    `yaml:"older_than"` // days
+	NewerThan      int    `yaml:"newer_than"` // days
 	From           string `yaml:"from"`
 	To             string `yaml:"to"`
 	Subject        string `yaml:"subject"`

@@ -152,8 +152,9 @@ func main() {
 
 		seqSet := new(imap.SeqSet)
 		now := time.Now()
-		// olderThanCutoff is set when a rule uses older_than; zero means no date filter.
+		// Date cutoffs are set when a rule uses older_than / newer_than; zero means no filter.
 		olderThanCutoff := time.Time{}
+		newerThanCutoff := time.Time{}
 
 		// search criteria
 		crit := imap.SearchCriteria{}
@@ -176,9 +177,18 @@ func main() {
 			// midnight on the day that falls N days before today.
 			// IMAP BEFORE uses internal date (server delivery time), not the sender's
 			// Date header. The protocol only supports whole dates, so the server search
-			// is a broad filter; messageIsOlderThan() re-checks each result precisely.
+			// is a broad filter; MessageIsOlderThan() re-checks each result precisely.
 			olderThanCutoff = lib.BeginningOfDay(now.AddDate(0, 0, -rule.OlderThan))
 			crit.Before = olderThanCutoff
+		}
+
+		if rule.NewerThan > 0 {
+			sFilters = append(sFilters, fmt.Sprintf("newer: %d days", rule.NewerThan))
+			// newer_than is the symmetric calendar-day rule: keep messages delivered on
+			// or after local midnight N days before today. IMAP SINCE (not SentSince)
+			// uses internal date; MessageIsNewerThan() re-checks each result precisely.
+			newerThanCutoff = lib.BeginningOfDay(now.AddDate(0, 0, -rule.NewerThan))
+			crit.Since = newerThanCutoff
 		}
 
 		if rule.Size > 0 {
@@ -275,10 +285,13 @@ func main() {
 		var totalSize uint32
 
 		for msg := range messages {
-			// IMAP BEFORE is date-only and may return messages near the cutoff
-			// (e.g. UTC calendar day differs from local). Skip anything not strictly
-			// older than the cutoff before listing or mutating.
+			// IMAP BEFORE/SINCE are date-only and may return messages near the cutoff
+			// (e.g. UTC calendar day differs from local). Re-check internal date
+			// precisely before listing or mutating.
 			if !olderThanCutoff.IsZero() && !lib.MessageIsOlderThan(msg, olderThanCutoff) {
+				continue
+			}
+			if !newerThanCutoff.IsZero() && !lib.MessageIsNewerThan(msg, newerThanCutoff) {
 				continue
 			}
 

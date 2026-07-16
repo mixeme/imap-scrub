@@ -48,6 +48,7 @@ rules:
     from: myclient@example.com
     min_size: 512
     older_than: 90
+    newer_than: 30
     actions: save_attachments, remove_attachments
 ```
 
@@ -102,6 +103,7 @@ rules:
   - mailbox:         string # IMAP mailbox name see below)
     min_size:        0      # minimum message size in kB
     older_than:      0      # older than x days (see below)
+    newer_than:      0      # newer than x days (see below)
     from:            string # match "From" field, comma-separated for OR matching
     to:              string # match "To" field
     subject:         string # match email subject
@@ -174,12 +176,16 @@ The `actions:` config may include a combination of `save_attachments` and one ot
 **Note** that you cannot combine `remove_attachments` and `delete`.
 
 
-### Option: `older_than`
+### Option: `older_than` / `newer_than`
 
-`older_than` matches messages that arrived in the mailbox more than the given number of **calendar days** ago, measured from local midnight today.
+`older_than` and `newer_than` are optional day-based filters measured from local midnight today. Both use the IMAP **internal delivery date** (when the server stored the message), not the sender's `Date` header. This is intentional: the `Date` header can be wrong, missing, or out of sync with when mail actually arrived.
 
-- The cutoff uses the IMAP **internal delivery date** (when the server stored the message), not the sender's `Date` header. This is intentional: the `Date` header can be wrong, missing, or out of sync with when mail actually arrived.
-- The IMAP `BEFORE` search is date-only (no time or timezone), so the server may return messages near the cutoff. IMAP-Scrub re-checks each result locally before listing or changing anything.
-- With debug logging enabled, skipped messages show the internal date and cutoff in your local timezone. If the envelope `Date` header falls on a different calendar day, a second line explains the difference.
+- `older_than: 30` matches messages delivered before local midnight 30 days ago
+- `newer_than: 7` matches messages delivered on or after local midnight 7 days ago
+- using both together matches a date range, for example `older_than: 90` with `newer_than: 30` matches messages between 30 and 90 days old
+
+The IMAP `BEFORE` / `SINCE` searches are date-only (no time or timezone), so the server may return messages near the cutoff. IMAP-Scrub re-checks each result locally before listing or changing anything.
+
+With debug logging enabled, skipped messages show the internal date and cutoff in your local timezone. If the envelope `Date` header falls on a different calendar day, a second line explains the difference.
 
 Example: with `older_than: 3` on 18 June, the cutoff is 15 June 00:00 local. A message whose internal date is 15 June 01:21 local is kept (not old enough), even if its `Date` header says 11 June.

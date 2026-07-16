@@ -240,3 +240,47 @@ func TestIntegrationOlderThanIgnoresEnvelopeDate(t *testing.T) {
 		t.Fatalf("fixture internal date should be on/after cutoff: %s", msg.InternalDate)
 	}
 }
+
+func TestIntegrationNewerThanInternalDate(t *testing.T) {
+	c := connectIntegration(t)
+	if _, err := c.Select("INBOX", true); err != nil {
+		t.Fatalf("select INBOX: %v", err)
+	}
+
+	cutoff := BeginningOfDay(time.Now().AddDate(0, 0, -30))
+
+	recent := fetchBySubject(t, c, "[imap-scrub-test] recent message from sender-b")
+	if !MessageIsNewerThan(recent, cutoff) {
+		t.Fatalf("recent fixture should match newer_than 30 days (internal=%s)", recent.InternalDate)
+	}
+
+	old := fetchBySubject(t, c, "[imap-scrub-test] old message from sender-a with attachment")
+	if MessageIsNewerThan(old, cutoff) {
+		t.Fatalf("old fixture should NOT match newer_than 30 days (internal=%s)", old.InternalDate)
+	}
+}
+
+func TestIntegrationNewerThanIgnoresEnvelopeDate(t *testing.T) {
+	c := connectIntegration(t)
+	if _, err := c.Select("INBOX", true); err != nil {
+		t.Fatalf("select INBOX: %v", err)
+	}
+
+	// Fixture: old Date header, recent IMAP internal date — must match newer_than.
+	msg := fetchBySubject(t, c, "[imap-scrub-test] recent internal with old envelope Date")
+	cutoff := BeginningOfDay(time.Now().AddDate(0, 0, -30))
+	if !MessageIsNewerThan(msg, cutoff) {
+		t.Fatalf(
+			"expected match: internal=%s envelope=%v cutoff=%s",
+			msg.InternalDate,
+			msg.Envelope,
+			cutoff,
+		)
+	}
+	if msg.Envelope == nil || msg.Envelope.Date.IsZero() {
+		t.Fatal("fixture missing envelope Date")
+	}
+	if !msg.Envelope.Date.Before(cutoff) {
+		t.Fatalf("fixture envelope Date should be older than cutoff for this scenario: %s", msg.Envelope.Date)
+	}
+}
