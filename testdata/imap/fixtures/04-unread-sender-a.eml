@@ -1,0 +1,9 @@
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: base64
+Subject: [imap-scrub-test] unread message from sender-a
+From: sender-a@test.com
+To: test@mixeml.ru
+Date: Tue, 14 Jul 2026 22:11:32 +0300
+
+VW5yZWFkIG1lc3NhZ2UgZm9yIGluY2x1ZGVfdW5yZWFkIHRlc3RzLg==

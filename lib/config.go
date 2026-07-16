@@ -66,13 +66,10 @@ func ReadConfig(file string) {
 	}
 
 	if Config.PassFile != "" {
-		passFile := path.Clean(Config.PassFile)
-		passData, err := os.ReadFile(passFile)
-		if err != nil {
-			Log.ErrorF("Error reading password file: %s", err)
+		if err := ApplyPassFile(&Config); err != nil {
+			Log.Error(err.Error())
 			os.Exit(2)
 		}
-		Config.Pass = strings.TrimSpace(string(passData))
 	}
 
 	if Config.User == "" || Config.Pass == "" || Config.Host == "" {
@@ -124,6 +121,27 @@ func ReadConfig(file string) {
 			Log.Error("Your rule cannot contain both remove_attachments and delete")
 			os.Exit(2)
 		}
+	}
+}
+
+// ApplyPassFile loads the password from cfg.PassFile into cfg.Pass.
+func ApplyPassFile(cfg *YamlConfig) error {
+	passFile := path.Clean(cfg.PassFile)
+	passData, err := os.ReadFile(passFile)
+	if err != nil {
+		return err
+	}
+	cfg.Pass = strings.TrimSpace(string(passData))
+	return nil
+}
+
+const secretMask = "**********"
+
+// MaskSecrets redacts password fields for -p / print-config output.
+func MaskSecrets(cfg *YamlConfig) {
+	cfg.Pass = secretMask
+	if cfg.PassFile != "" {
+		cfg.PassFile = secretMask
 	}
 }
 
