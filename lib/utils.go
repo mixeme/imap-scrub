@@ -104,7 +104,7 @@ func InStringSlice(val string, slice []string) bool {
 	return false
 }
 
-// SaveAttachment will save an attachment to <outdir>/<email>/<hash>-<filename>
+// SaveAttachment will save an attachment to <outdir>/<email>/<DD-Mon-YY>/<hash>-<filename>
 // returns the output file path and/or error
 func SaveAttachment(b []byte, emailAddress, fileName string, timestamp time.Time) (string, error) {
 	fileName = path.Clean(filepath.Base(fileName))
@@ -124,7 +124,13 @@ func SaveAttachment(b []byte, emailAddress, fileName string, timestamp time.Time
 		return "", err
 	}
 
-	outFile := path.Clean(path.Join(outDir, hashed))
+	emailDate := timestamp.Format("02-Jan-06")
+	outDirWithDate := path.Clean(path.Join(outDir, emailDate))
+	if err := CreateDir(outDirWithDate); err != nil {
+		return "", err
+	}
+
+	outFile := path.Clean(path.Join(outDirWithDate, hashed))
 	if FileExists(outFile) {
 		Log.WarningF(" - %s already exists", outFile)
 		return outFile, nil

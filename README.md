@@ -167,7 +167,7 @@ If `use_trash` is set to `true`, and your IMAP returns a trash mailbox, then del
 
 There are three possible actions, namely:
 
-- `save_attachments` will save any attachments to `save_path`
+- `save_attachments` will save any attachments to `save_path/<from-email>/<DD-Mon-YY>/` (date from the message `Date` header)
 - `remove_attachments` will remove the all attachments and inline images from the original email 
 - `delete` will simply delete the email
 
