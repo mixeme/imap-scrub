@@ -11,7 +11,7 @@ Synthetic `.eml` messages for manual and integration testing of imap-scrub.
 | `03-recent-sender-a-no-attachment.eml` | recent sender-a without attachments |
 | `04-unread-sender-a.eml` | `include_unread` default behaviour |
 | `05-starred-sender-b.eml` | `include_starred` default behaviour |
-| `06-recent-internal-old-envelope.eml` | `older_than` uses internal date, not Date header |
+| `06-recent-internal-old-envelope.eml` | `older_than` / `newer_than` use internal date, not Date header |
 
 Subjects are prefixed with `[imap-scrub-test]` so they are easy to find in the mailbox.
 
