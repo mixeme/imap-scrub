@@ -145,6 +145,16 @@ def fixture_specs(now: datetime) -> list[dict]:
             "internal_at": recent,
             "flags": "(\\Seen \\Flagged)",
         },
+        {
+            # Envelope Date is old, IMAP internal date is recent — older_than must use internal.
+            "filename": "06-recent-internal-old-envelope.eml",
+            "subject": "[imap-scrub-test] recent internal with old envelope Date",
+            "sender": "sender-a@test.com",
+            "body": "Envelope Date is old; IMAP internal date is recent.",
+            "sent_at": old,
+            "internal_at": recent,
+            "flags": "(\\Seen)",
+        },
     ]
 
 

@@ -1,18 +1,18 @@
-Content-Type: multipart/mixed; boundary="===============8412272162880025125=="
+Content-Type: multipart/mixed; boundary="===============2318233443907514447=="
 MIME-Version: 1.0
 Subject: [imap-scrub-test] old message from sender-a with attachment
 From: sender-a@test.com
 To: test@mixeml.ru
-Date: Sun, 31 May 2026 21:32:44 +0300
+Date: Mon, 01 Jun 2026 22:11:32 +0300
 
---===============8412272162880025125==
+--===============2318233443907514447==
 Content-Type: text/plain; charset="utf-8"
 MIME-Version: 1.0
 Content-Transfer-Encoding: base64
 
 T2xkIG1lc3NhZ2UgZm9yIG9sZGVyX3RoYW4gYW5kIGF0dGFjaG1lbnQgdGVzdHMu
 
---===============8412272162880025125==
+--===============2318233443907514447==
 Content-Type: application/octet-stream; Name="test.pdf"
 MIME-Version: 1.0
 Content-Transfer-Encoding: base64
@@ -20,4 +20,4 @@ Content-Disposition: attachment; filename="test.pdf"
 
 JVBERi0xLjEKMSAwIG9iajw8Pj5lbmRvYmoKdHJhaWxlcjw8Pj4KJSVFT0YK
 
---===============8412272162880025125==--
+--===============2318233443907514447==--

@@ -24,6 +24,7 @@ func TestMessageIsOlderThan(t *testing.T) {
 	tests := []struct {
 		name         string
 		internalDate time.Time
+		envelopeDate time.Time
 		want         bool
 	}{
 		{
@@ -37,9 +38,28 @@ func TestMessageIsOlderThan(t *testing.T) {
 			want:         false,
 		},
 		{
+			name:         "strictly newer",
+			internalDate: time.Date(2026, 7, 15, 12, 0, 0, 0, loc),
+			want:         false,
+		},
+		{
 			name:         "missing internal date",
 			internalDate: time.Time{},
 			want:         false,
+		},
+		{
+			// Envelope Date is old, but internal delivery is recent — must skip.
+			name:         "recent internal ignores old envelope Date",
+			internalDate: time.Date(2026, 7, 15, 12, 0, 0, 0, loc),
+			envelopeDate: time.Date(2026, 6, 1, 12, 0, 0, 0, loc),
+			want:         false,
+		},
+		{
+			// Envelope Date is recent, but internal delivery is old — must match.
+			name:         "old internal ignores recent envelope Date",
+			internalDate: time.Date(2026, 7, 1, 12, 0, 0, 0, loc),
+			envelopeDate: time.Date(2026, 7, 15, 12, 0, 0, 0, loc),
+			want:         true,
 		},
 	}
 
@@ -48,6 +68,9 @@ func TestMessageIsOlderThan(t *testing.T) {
 			msg := &imap.Message{
 				Uid:          42,
 				InternalDate: tc.internalDate,
+			}
+			if !tc.envelopeDate.IsZero() {
+				msg.Envelope = &imap.Envelope{Date: tc.envelopeDate}
 			}
 			if got := MessageIsOlderThan(msg, cutoff); got != tc.want {
 				t.Fatalf("MessageIsOlderThan() = %v, want %v", got, tc.want)

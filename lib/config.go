@@ -135,6 +135,16 @@ func ApplyPassFile(cfg *YamlConfig) error {
 	return nil
 }
 
+const secretMask = "**********"
+
+// MaskSecrets redacts password fields for -p / print-config output.
+func MaskSecrets(cfg *YamlConfig) {
+	cfg.Pass = secretMask
+	if cfg.PassFile != "" {
+		cfg.PassFile = secretMask
+	}
+}
+
 // Delete returns whether a rule is set to delete messages
 func (r Rule) Delete() bool {
 	return strings.Contains(r.Actions, "delete")

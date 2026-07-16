@@ -92,10 +92,7 @@ func main() {
 	lib.ReadConfig(configFile)
 
 	if printConfig {
-		lib.Config.Pass = "**********"
-		if lib.Config.PassFile != "" {
-			lib.Config.PassFile = "**********"
-		}
+		lib.MaskSecrets(&lib.Config)
 		lib.PrettyPrint(lib.Config)
 		os.Exit(0)
 	}

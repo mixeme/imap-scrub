@@ -18,6 +18,37 @@ jobs:
       - name: Run unit tests
         run: go test ./...
 
+  build-scripts:
+    name: Build scripts (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux
+            os: ubuntu-latest
+            run: bash scripts/build-linux.sh
+            artifact: dist/imap-scrub-linux-amd64
+          - name: windows
+            os: windows-latest
+            run: scripts\build-windows.bat
+            artifact: dist/imap-scrub-windows-amd64.exe
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.20"
+      - name: Run build script
+        run: ${{ matrix.run }}
+      - name: Verify artifact exists and is non-empty
+        shell: bash
+        run: |
+          set -eu
+          artifact="${{ matrix.artifact }}"
+          test -f "$artifact"
+          test -s "$artifact"
+          ls -la "$artifact"
+
   integration:
     name: Integration tests
     runs-on: ubuntu-latest
