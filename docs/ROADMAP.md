@@ -12,16 +12,22 @@ Tracked against [axllent/imap-scrub issues](https://github.com/axllent/imap-scru
 | [#6](https://github.com/axllent/imap-scrub/issues/6) | Preserve S/MIME digital signatures on `remove_attachments` | Do not strip attachments named `smime.p7m`, `smime.p7s`, or `smime.p7z` ([RFC 8551](https://www.rfc-editor.org/rfc/rfc8551)). Optional config, default keep signatures. |
 | [#10](https://github.com/axllent/imap-scrub/issues/10) | OAuth login (mainly Gmail) | Needed for modern Gmail without app passwords. |
 | [#10](https://github.com/axllent/imap-scrub/issues/10) | Downscale attachments instead of removing | Resize large images (including inline) to a smaller copy in the message rather than deleting them entirely. |
-| [#2](https://github.com/axllent/imap-scrub/pull/2) | `export_mailbox` follow-ups | Base action shipped in v0.1.0. Remaining ideas from upstream PR: resume append when Message-ID is new; separate export directory; Homebrew formula. |
+
+### Future improvements (`export_mailbox`)
+
+Core `export_mailbox` is done (ported from [axllent#2](https://github.com/axllent/imap-scrub/pull/2), release 0.1.0). Optional extras from the original PR idea list:
+
+- Resume export: append to existing mbox when Message-ID is new
+- Separate export directory (not shared with `save_path`)
+- Homebrew formula
 
 ### Suggested feature order
 
 1. S/MIME signature preservation ([#6](https://github.com/axllent/imap-scrub/issues/6)) — small, safety-oriented change
 2. Regex / multi-mailbox rules ([#9](https://github.com/axllent/imap-scrub/issues/9))
-3. `export_mailbox` follow-ups ([#2](https://github.com/axllent/imap-scrub/pull/2))
-4. OAuth for Gmail ([#10](https://github.com/axllent/imap-scrub/issues/10))
-5. Attachment downscaling ([#10](https://github.com/axllent/imap-scrub/issues/10))
-6. Broader rewrite for flexibility ([#10](https://github.com/axllent/imap-scrub/issues/10)) — long term
+3. OAuth for Gmail ([#10](https://github.com/axllent/imap-scrub/issues/10))
+4. Attachment downscaling ([#10](https://github.com/axllent/imap-scrub/issues/10))
+5. Broader rewrite for flexibility ([#10](https://github.com/axllent/imap-scrub/issues/10)) — long term
 
 ### Already addressed in this fork
 
