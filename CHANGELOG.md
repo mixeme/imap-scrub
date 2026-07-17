@@ -2,25 +2,43 @@
 
 ## [Unreleased]
 
-- Fix `older_than` to use the IMAP internal delivery date instead of the sender-controlled `Date` header (ported from axllent/imap-scrub#14)
-- Normalize the cutoff to local midnight and re-verify each fetched message before delete or attachment actions
-- Clarify debug output when messages are skipped: show internal date and cutoff in local time, and note when the envelope `Date` header differs
-- Add local build scripts for Windows and Linux amd64 binaries (from axllent/imap-scrub#14)
-- Add a Docker-based Linux build script
-- Add `pass_file` config option to load IMAP password from a file (ported from axllent/imap-scrub#13, thanks @Carsten-Leue)
-- Support comma-separated `from` filter with OR matching (ported from axllent/imap-scrub#13, thanks @Carsten-Leue)
-- Add `newer_than` day filter using IMAP internal date (ported from axllent/imap-scrub#13, adapted from SentSince; thanks @Carsten-Leue)
-- Save attachments under a per-message date subfolder `DD-Mon-YY` (ported from jackr0/imap-scrub@442939d, thanks @jackr0)
-- Organize saved attachments as date → sender → per-email metadata folders (recipient, subject, UID) (ported from mikulcak/imap-scrub@5337895a, adapted hierarchy; thanks @mikulcak)
-- Add local `scripts/build.sh` and macOS cross-compile `scripts/build-macos.sh` (ported from mikulcak/imap-scrub@efc8fa72 / @08a74437, thanks @mikulcak)
-- Add unit tests and GitHub Actions CI for core date, search, and pass_file logic
-- Add CI checks that local build scripts produce Windows and Linux amd64 binaries
-- Add optional IMAP integration tests and mailbox seeding script (`testdata/imap/`)
-- Use native `UidMove` from `go-imap` and drop the `go-imap-move` dependency (ported from touste/imap-scrub@395f2e0, thanks @touste)
-- Add Nix flake (`flake.nix`) and direnv `.envrc` for reproducible builds (ported from ahbk/imap-scrub@4da9393, thanks @ahbk)
-- Add CI job that runs `nix build` for the flake package
-- Add `export_mailbox` action to write matching messages to a local mbox file (ported from aheissenberger/imap-scrub@05ace3ee, thanks @aheissenberger)
-- Add VS Code / Cursor dev container for Go 1.20 (ported from mikulcak/imap-scrub@e2c84719, thanks @mikulcak)
+## [0.1.0] — community continuation release
+
+Actively maintained continuation of [axllent/imap-scrub](https://github.com/axllent/imap-scrub) (last upstream release `0.0.6`, Apr 2024).
+
+Install: `go install github.com/mixeme/imap-scrub@latest`  
+Releases: https://github.com/mixeme/imap-scrub/releases
+
+### Ports and contributions
+
+| PR | Change | Source |
+|----|--------|--------|
+| [#1](https://github.com/mixeme/imap-scrub/pull/1) | `older_than` uses IMAP internal date (not envelope `Date`) | [axllent#14](https://github.com/axllent/imap-scrub/pull/14) |
+| [#2](https://github.com/mixeme/imap-scrub/pull/2) | Local Windows/Linux build scripts | [axllent#14](https://github.com/axllent/imap-scrub/pull/14) |
+| [#3](https://github.com/mixeme/imap-scrub/pull/3) | `pass_file` config option | [axllent#13](https://github.com/axllent/imap-scrub/pull/13) (@Carsten-Leue) |
+| [#4](https://github.com/mixeme/imap-scrub/pull/4) | Comma-separated `from` (OR) + unit/integration CI | [axllent#13](https://github.com/axllent/imap-scrub/pull/13) (@Carsten-Leue) |
+| [#5](https://github.com/mixeme/imap-scrub/pull/5) | `newer_than` via IMAP internal date | [axllent#13](https://github.com/axllent/imap-scrub/pull/13) (@Carsten-Leue) |
+| [#6](https://github.com/mixeme/imap-scrub/pull/6) | Attachment date subfolder | [jackr0@442939d](https://github.com/jackr0/imap-scrub/commit/442939d) |
+| [#7](https://github.com/mixeme/imap-scrub/pull/7) | Date → sender → metadata attachment folders | [mikulcak@5337895a](https://github.com/mikulcak/imap-scrub/commit/5337895a) |
+| [#8](https://github.com/mixeme/imap-scrub/pull/8) | Local + macOS build scripts | [mikulcak@efc8fa72](https://github.com/mikulcak/imap-scrub/commit/efc8fa72) |
+| [#9](https://github.com/mixeme/imap-scrub/pull/9) | Native `UidMove`; drop `go-imap-move` | [touste@395f2e0](https://github.com/touste/imap-scrub/commit/395f2e0) |
+| [#10](https://github.com/mixeme/imap-scrub/pull/10) | Nix flake + direnv | [ahbk@4da9393](https://github.com/ahbk/imap-scrub/commit/4da9393) |
+| [#11](https://github.com/mixeme/imap-scrub/pull/11) | `export_mailbox` → local mbox | [aheissenberger@05ace3ee](https://github.com/aheissenberger/imap-scrub/commit/05ace3ee) |
+| [#12](https://github.com/mixeme/imap-scrub/pull/12) | VS Code / Cursor Go 1.20 dev container | [mikulcak@e2c84719](https://github.com/mikulcak/imap-scrub/commit/e2c84719) |
+| [#13](https://github.com/mixeme/imap-scrub/pull/13) | Continuation branding, `mixeme` install/updater paths | this release |
+
+### Already in upstream 0.0.6 (no separate port PR)
+
+- Skip `remove_attachments` when a message has no attachments ([michalfapso#7](https://github.com/axllent/imap-scrub/pull/7))
+- Mailbox `Select()` hang fix (aheissenberger `fix-select-mailbox-blocked`, in `lib/mailboxes.go`)
+
+### Highlights
+
+- Fix `older_than` / add `newer_than` using IMAP **internal delivery date**, with local midnight cutoffs and post-fetch re-checks
+- `pass_file`, comma-separated `from`, richer attachment save paths
+- `export_mailbox` action for mbox backup
+- Native IMAP MOVE, Nix flake, local/macOS/Windows build scripts, CI + optional IMAP integration tests
+- Self-updater and docs point at `mixeme/imap-scrub`
 
 
 ## [0.0.6]

@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/axllent/imap-scrub/lib"
-	"github.com/axllent/imap-scrub/lib/updater"
+	"github.com/mixeme/imap-scrub/lib"
+	"github.com/mixeme/imap-scrub/lib/updater"
 	"github.com/emersion/go-imap"
 	"github.com/emersion/go-imap/client"
 	"github.com/spf13/pflag"
@@ -34,7 +34,7 @@ func main() {
 
 	// set the default help
 	flag.Usage = func() {
-		fmt.Printf("IMAP Scrub - https://github.com/axllent/imap-scrub\n\n")
+		fmt.Printf("IMAP Scrub - https://github.com/mixeme/imap-scrub\n\n")
 		fmt.Printf("Usage: %s [options] <config.yml>\n", os.Args[0])
 		fmt.Println("\nOptions:")
 		flag.SortFlags = false
@@ -59,10 +59,10 @@ func main() {
 		fmt.Printf("%s %s compiled with %s on %s/%s\n",
 			os.Args[0], appVersion, runtime.Version(), runtime.GOOS, runtime.GOARCH)
 
-		latest, _, _, err := updater.GithubLatest("axllent/imap-scrub", "imap-scrub")
+		latest, _, _, err := updater.GithubLatest("mixeme/imap-scrub", "imap-scrub")
 		if err == nil && updater.GreaterThan(latest, appVersion) {
 			fmt.Printf(
-				"\nUpdate available: %s\nRun `%s version -u` to update (requires read/write access to install directory).\n",
+				"\nUpdate available: %s\nRun `%s -u` to update (requires read/write access to install directory).\n",
 				latest,
 				os.Args[0],
 			)
@@ -71,7 +71,7 @@ func main() {
 	}
 
 	if update {
-		rel, err := updater.GithubUpdate("axllent/imap-scrub", "imap-scrub", appVersion)
+		rel, err := updater.GithubUpdate("mixeme/imap-scrub", "imap-scrub", appVersion)
 		if err != nil {
 			fmt.Println(err.Error())
 			os.Exit(1)
