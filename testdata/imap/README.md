@@ -42,3 +42,6 @@ go test -tags=integration ./lib -run TestIntegration -count=1
 
 Requires `dev/imap-test.yml` (see `imap-test.yml.example`). Re-seed fixtures with
 `python scripts/seed-imap-test.py` if messages are missing.
+
+`TestIntegrationExportMailbox` fetches a fixture with `BODY.PEEK[]`, writes it via
+`export_mailbox` helpers, and checks the resulting `mbox` file.
