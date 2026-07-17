@@ -20,8 +20,7 @@
     {
       packages.${system}.default = pkgs.buildGoModule {
         inherit src pname version;
-        # Recalculate after go.mod changes: nix build 2>&1 | grep got:
-        vendorHash = "sha256-WkPG3HLCSEpJ6Sqz3+mF4X++D2MDKK34YIpc9oehhvI=";
+        vendorHash = "sha256-y6gALgt7idtACYasSIvuFXAe9ZBi2ua9DItbA/7Lzbw=";
       };
 
       devShells.${system} = {
