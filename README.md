@@ -1,6 +1,11 @@
 # IMAP-Scrub
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/axllent/imap-scrub)](https://goreportcard.com/report/github.com/axllent/imap-scrub)
+> **Actively maintained continuation of [axllent/imap-scrub](https://github.com/axllent/imap-scrub).**  
+> Upstream last released `0.0.6` (Apr 2024). This fork consolidates community ports and continues development: [`mixeme/imap-scrub`](https://github.com/mixeme/imap-scrub).
+
+[![Go Report Card](https://goreportcard.com/badge/github.com/mixeme/imap-scrub)](https://goreportcard.com/report/github.com/mixeme/imap-scrub)
+
+Documentation: [Roadmap](docs/ROADMAP.md) · [Changelog](docs/CHANGELOG.md)
 
 A command-line utility (Linux, Mac & Windows) to reduce the size of your IMAP mailbox through a series of pre-defined rules. Each rule contain a series of search modifiers, and one or two actions (`delete`, `remove_attachments`, `save_attachments`, `export_mailbox`).
 
@@ -61,8 +66,8 @@ See [All yaml config options](#all-yaml-config-options) below for more info.
 
 ## Installing
 
-Download the [latest binary release](https://github.com/axllent/imap-scrub/releases/latest) for your system, 
-or build from source `go install github.com/axllent/imap-scrub@latest`(go >= 1.11 required)
+Download the [latest binary release](https://github.com/mixeme/imap-scrub/releases/latest) for your system, 
+or build from source `go install github.com/mixeme/imap-scrub@latest` (Go >= 1.20 required)
 
 For a ready-made Go 1.20 toolchain in VS Code / Cursor, see [`.devcontainer/README.md`](.devcontainer/README.md).
 

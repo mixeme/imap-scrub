@@ -1,4 +1,4 @@
-module github.com/axllent/imap-scrub
+module github.com/mixeme/imap-scrub
 
 go 1.20
 
