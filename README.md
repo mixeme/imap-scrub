@@ -5,7 +5,7 @@
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/mixeme/imap-scrub)](https://goreportcard.com/report/github.com/mixeme/imap-scrub)
 
-Documentation: [Roadmap](docs/ROADMAP.md) · [Changelog](CHANGELOG.md)
+Documentation: [Roadmap](docs/ROADMAP.md) · [Changelog](docs/CHANGELOG.md)
 
 A command-line utility (Linux, Mac & Windows) to reduce the size of your IMAP mailbox through a series of pre-defined rules. Each rule contain a series of search modifiers, and one or two actions (`delete`, `remove_attachments`, `save_attachments`, `export_mailbox`).
 

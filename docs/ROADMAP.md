@@ -2,7 +2,7 @@
 
 Planned work for `mixeme/imap-scrub`, tracked against [axllent/imap-scrub issues](https://github.com/axllent/imap-scrub/issues).
 
-Shipped changes are in [Changelog](../CHANGELOG.md).
+Shipped changes are in [Changelog](CHANGELOG.md).
 
 ## Features
 
