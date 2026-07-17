@@ -2,3 +2,4 @@
 /dev/
 /imap-scrub
 /*.yml
+__pycache__/
