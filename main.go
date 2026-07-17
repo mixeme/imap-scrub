@@ -13,7 +13,6 @@ import (
 	"github.com/axllent/imap-scrub/lib"
 	"github.com/axllent/imap-scrub/lib/updater"
 	"github.com/emersion/go-imap"
-	move "github.com/emersion/go-imap-move"
 	"github.com/emersion/go-imap/client"
 	"github.com/spf13/pflag"
 )
@@ -333,9 +332,8 @@ func main() {
 				seqSet.AddNum(msg.Uid)
 
 				if trashMailbox != "" {
-					// move to Bin
-					mover := move.NewClient(cWriter)
-					if err := mover.UidMove(seqSet, trashMailbox); err != nil {
+					// move to Bin (native MOVE from go-imap; falls back to COPY+STORE+EXPUNGE)
+					if err := cWriter.UidMove(seqSet, trashMailbox); err != nil {
 						lib.Log.Errorf(err.Error())
 						continue
 					}
