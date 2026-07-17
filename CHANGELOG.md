@@ -18,6 +18,7 @@
 - Add optional IMAP integration tests and mailbox seeding script (`testdata/imap/`)
 - Use native `UidMove` from `go-imap` and drop the `go-imap-move` dependency (ported from touste/imap-scrub@395f2e0, thanks @touste)
 - Add Nix flake (`flake.nix`) and direnv `.envrc` for reproducible builds (ported from ahbk/imap-scrub@4da9393, thanks @ahbk)
+- Add CI job that runs `nix build` for the flake package
 
 
 ## [0.0.6]
