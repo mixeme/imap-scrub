@@ -33,6 +33,14 @@ jobs:
             os: windows-latest
             run: scripts\build-windows.bat
             artifact: dist/imap-scrub-windows-amd64.exe
+          - name: macos
+            os: ubuntu-latest
+            run: bash scripts/build-macos.sh
+            artifact: dist/imap-scrub-darwin-amd64
+          - name: local
+            os: ubuntu-latest
+            run: bash scripts/build.sh
+            artifact: dist/imap-scrub
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
