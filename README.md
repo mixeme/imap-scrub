@@ -62,16 +62,22 @@ or build from source `go install github.com/axllent/imap-scrub@latest`(go >= 1.1
 
 ### Building local binaries
 
-The build scripts create `amd64` binaries in the `dist` directory. They can be
-run from any working directory.
+The build scripts write artifacts to the `dist` directory and can be run from any
+working directory.
 
-On Windows:
+Current OS/architecture:
+
+```sh
+bash scripts/build.sh
+```
+
+On Windows (amd64):
 
 ```bat
 scripts\build-windows.bat
 ```
 
-On Linux:
+On Linux (amd64):
 
 ```sh
 bash scripts/build-linux.sh
@@ -83,8 +89,20 @@ On Linux using Docker:
 bash scripts/build-linux-docker.sh
 ```
 
+macOS cross-compile (amd64 + arm64; works from Linux or a container):
+
+```sh
+bash scripts/build-macos.sh
+```
+
+This writes:
+
+- `dist/imap-scrub-darwin-amd64` (Intel Macs)
+- `dist/imap-scrub-darwin-arm64` (Apple Silicon)
+
 GitHub release builds inject the version from the release tag via CI. Local
-builds report `dev` unless you pass `-ldflags "-X main.appVersion=<version>"`.
+builds report `dev` unless you pass `-ldflags "-X main.appVersion=<version>"`
+(or set `VERSION` when running `scripts/build-macos.sh`).
 
 
 ## All yaml config options
