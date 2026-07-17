@@ -5,7 +5,12 @@
 
 A command-line utility (Linux, Mac & Windows) to reduce the size of your IMAP mailbox through a series of pre-defined rules. Each rule contains a series of search modifiers, and one or two actions (`delete`, `remove_attachments`, `save_attachments`, `export_mailbox`).
 
-I wrote this tool because I receive many emails with attachments that I need for a limited time only. After a year or two, these attachments do nothing more than take up space, however I did not want to just delete the emails themselves as many contain information that I would rather keep. In another example, certain emails I just do not want to keep at all after a certain period (social media notifications etc).
+Typical use cases include:
+
+- Freeing mailbox space by removing large attachments from old messages while keeping the email text and headers
+- Saving attachments to disk before stripping them from the server (or exporting matching messages to a local mbox)
+- Deleting mail that is no longer useful after a set period — for example social notifications, newsletters, or automated alerts
+- Targeting specific senders, subjects, or size thresholds so only the rules you define are applied
 
 Changelog: [docs/CHANGELOG.md](docs/CHANGELOG.md)
 
