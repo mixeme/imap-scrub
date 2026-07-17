@@ -13,8 +13,9 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 
-	"github.com/axllent/semver"
+	"golang.org/x/mod/semver"
 )
 
 var (
@@ -81,12 +82,13 @@ func GithubLatest(repo, name string) (string, string, string, error) {
 
 	// loop through releases
 	for _, r := range releases {
-		if !semver.IsValid(r.Tag) {
+		tag := canon(r.Tag)
+		if !semver.IsValid(tag) {
 			// Invalid semversion, skip
 			continue
 		}
 
-		if !AllowPrereleases && (semver.Prerelease(r.Tag) != "" || r.Prerelease) {
+		if !AllowPrereleases && (semver.Prerelease(tag) != "" || r.Prerelease) {
 			// we don't accept AllowPrereleases, skip
 			continue
 		}
@@ -109,7 +111,7 @@ func GithubLatest(repo, name string) (string, string, string, error) {
 
 	for _, r := range allReleases {
 		// detect the latest release
-		if semver.Compare(r.Tag, latestRelease.Tag) == 1 {
+		if semver.Compare(canon(r.Tag), canon(latestRelease.Tag)) == 1 {
 			latestRelease = r
 		}
 	}
@@ -120,7 +122,15 @@ func GithubLatest(repo, name string) (string, string, string, error) {
 // GreaterThan compares the current version to a different version
 // returning < 1 not upgradeable
 func GreaterThan(toVer, fromVer string) bool {
-	return semver.Compare(toVer, fromVer) == 1
+	return semver.Compare(canon(toVer), canon(fromVer)) == 1
+}
+
+// canon ensures a leading "v" so versions are accepted by golang.org/x/mod/semver.
+func canon(v string) string {
+	if v == "" || strings.HasPrefix(strings.ToLower(v), "v") {
+		return v
+	}
+	return "v" + v
 }
 
 // GithubUpdate the running binary with the latest release binary from Github
@@ -135,7 +145,7 @@ func GithubUpdate(repo, appName, currentVersion string) (string, error) {
 		return "", fmt.Errorf("No new release found")
 	}
 
-	if semver.Compare(ver, currentVersion) < 1 {
+	if semver.Compare(canon(ver), canon(currentVersion)) < 1 {
 		return "", fmt.Errorf("No newer releases found (latest %s)", ver)
 	}
 

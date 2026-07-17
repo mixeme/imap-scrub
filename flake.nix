@@ -12,7 +12,7 @@
     }:
     let
       pname = "imap-scrub";
-      version = "0.1.0";
+      version = "0.1.1";
       src = ./.;
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
@@ -20,7 +20,8 @@
     {
       packages.${system}.default = pkgs.buildGoModule {
         inherit src pname version;
-        vendorHash = "sha256-WghAGk9PVFcT8V57rSnxeRTvwrjeFBWsp3cxiDDI6HI=";
+        # After go.mod/go.sum changes: nix build, then replace with `got: sha256-...`.
+        vendorHash = pkgs.lib.fakeHash;
       };
 
       devShells.${system} = {

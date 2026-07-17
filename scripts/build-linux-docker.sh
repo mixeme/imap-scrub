@@ -16,5 +16,5 @@ docker run --rm \
     --env GOMODCACHE=/tmp/go-mod \
     --volume "$project_dir:/workspace" \
     --workdir /workspace \
-    golang:1.20 \
+    golang:1.23 \
     go build -ldflags="-s -w" -o "dist/imap-scrub-linux-amd64" .

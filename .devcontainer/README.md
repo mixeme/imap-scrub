@@ -4,7 +4,7 @@ This repository includes a VS Code / Cursor dev container configuration for Go d
 
 ## What it provides
 
-- Go 1.20 toolchain in a reproducible container
+- Go 1.23 toolchain in a reproducible container
 - Automatic dependency download (`go mod download`) on first create
 - Recommended VS Code extensions and Go formatting on save
 

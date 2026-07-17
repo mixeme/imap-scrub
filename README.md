@@ -67,9 +67,9 @@ See [All yaml config options](#all-yaml-config-options) below for more info.
 ## Installing
 
 Download the [latest binary release](https://github.com/mixeme/imap-scrub/releases/latest) for your system, 
-or build from source `go install github.com/mixeme/imap-scrub@latest` (Go >= 1.20 required)
+or build from source `go install github.com/mixeme/imap-scrub@latest` (Go >= 1.23 required)
 
-For a ready-made Go 1.20 toolchain in VS Code / Cursor, see [`.devcontainer/README.md`](.devcontainer/README.md).
+For a ready-made Go 1.23 toolchain in VS Code / Cursor, see [`.devcontainer/README.md`](.devcontainer/README.md).
 
 ### Building local binaries
 

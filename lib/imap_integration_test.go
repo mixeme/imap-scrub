@@ -13,7 +13,7 @@ import (
 
 	"github.com/emersion/go-imap"
 	"github.com/emersion/go-imap/client"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v3"
 )
 
 type imapTestConfig struct {

@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+## [0.1.1] — dependency refresh
+
+### Dependencies
+
+- Migrate YAML from archived `gopkg.in/yaml.v3` to maintained `go.yaml.in/yaml/v3`
+- Replace unmaintained `apsdehal/go-logger` with `log/slog` (message-only CLI output + ANSI level colors preserved)
+- Replace `axllent/semver` with `golang.org/x/mod/semver` (self-updater only)
+- Bump `go-message` to v0.18.2, `go-mbox` to v1.0.4, `pflag` to v1.0.10, `golang.org/x/text` to v0.28.0
+- Raise minimum Go version to 1.23 (devcontainer, CI, Docker build image)
+- Nix flake `vendorHash` reset to `lib.fakeHash` — run `nix build` once and paste the reported `got:` hash
+
 ## [0.1.0] — community continuation release
 
 Actively maintained continuation of [axllent/imap-scrub](https://github.com/axllent/imap-scrub) (last upstream release `0.0.6`, Apr 2024).
