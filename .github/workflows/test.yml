@@ -57,6 +57,21 @@ jobs:
           test -s "$artifact"
           ls -la "$artifact"
 
+  nix:
+    name: Nix flake build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/determinate-nix-action@v3
+      - name: Build flake package
+        run: nix build --print-build-logs
+      - name: Verify result symlink
+        run: |
+          set -eu
+          test -L result
+          test -x result/bin/imap-scrub
+          result/bin/imap-scrub --version
+
   integration:
     name: Integration tests
     runs-on: ubuntu-latest

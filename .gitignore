@@ -3,3 +3,5 @@
 /imap-scrub
 /*.yml
 __pycache__/
+/result
+/.direnv

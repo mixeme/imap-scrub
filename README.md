@@ -104,6 +104,22 @@ GitHub release builds inject the version from the release tag via CI. Local
 builds report `dev` unless you pass `-ldflags "-X main.appVersion=<version>"`
 (or set `VERSION` when running `scripts/build-macos.sh`).
 
+### Nix flake
+
+With [Nix](https://nixos.org/) and flakes enabled:
+
+```sh
+nix build
+```
+
+For a development shell (Go toolchain):
+
+```sh
+nix develop
+```
+
+With [direnv](https://direnv.net/), `.envrc` loads the flake automatically.
+
 
 ## All yaml config options
 
