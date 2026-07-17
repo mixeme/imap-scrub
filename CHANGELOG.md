@@ -11,6 +11,7 @@
 - Support comma-separated `from` filter with OR matching (ported from axllent/imap-scrub#13, thanks @Carsten-Leue)
 - Add `newer_than` day filter using IMAP internal date (ported from axllent/imap-scrub#13, adapted from SentSince; thanks @Carsten-Leue)
 - Save attachments under a per-message date subfolder `DD-Mon-YY` (ported from jackr0/imap-scrub@442939d, thanks @jackr0)
+- Organize saved attachments as date → sender → per-email metadata folders (recipient, subject, UID) (ported from mikulcak/imap-scrub@5337895a, adapted hierarchy; thanks @mikulcak)
 - Add unit tests and GitHub Actions CI for core date, search, and pass_file logic
 - Add CI checks that local build scripts produce Windows and Linux amd64 binaries
 - Add optional IMAP integration tests and mailbox seeding script (`testdata/imap/`)
