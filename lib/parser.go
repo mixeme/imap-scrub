@@ -56,7 +56,10 @@ func HandleMessage(msg *imap.Message, rule Rule) (string, int, error) {
 
 	deleted := []DeletedAttachment{}
 
-	froms := msg.Envelope.From
+	froms := []*imap.Address{}
+	if msg.Envelope != nil {
+		froms = msg.Envelope.From
+	}
 
 	inlineClosed := false
 
@@ -66,6 +69,24 @@ func HandleMessage(msg *imap.Message, rule Rule) (string, int, error) {
 	emailAddress := "no-email"
 	if len(froms) > 0 {
 		emailAddress = froms[0].Address()
+	}
+
+	origin := AttachmentOrigin{
+		Timestamp: time.Now(),
+		Subject:   "",
+		Recipient: "",
+		UID:       msg.Uid,
+		Mailbox:   rule.Mailbox,
+	}
+
+	if msg.Envelope != nil {
+		if !msg.Envelope.Date.IsZero() {
+			origin.Timestamp = msg.Envelope.Date
+		}
+		origin.Subject = msg.Envelope.Subject
+		if len(msg.Envelope.To) > 0 {
+			origin.Recipient = msg.Envelope.To[0].Address()
+		}
 	}
 
 	// Read each mail's part
@@ -145,7 +166,7 @@ func HandleMessage(msg *imap.Message, rule Rule) (string, int, error) {
 					return "", 0, err
 				}
 				if rule.SaveAttachments() {
-					if filename, err = SaveAttachment(b, emailAddress, filename, msg.Envelope.Date); err != nil {
+					if filename, err = SaveAttachment(b, emailAddress, filename, origin); err != nil {
 						return "", 0, err
 					}
 				}
@@ -179,7 +200,7 @@ func HandleMessage(msg *imap.Message, rule Rule) (string, int, error) {
 			b, _ := io.ReadAll(p.Body)
 
 			if rule.SaveAttachments() {
-				if filename, err = SaveAttachment(b, emailAddress, filename, msg.Envelope.Date); err != nil {
+				if filename, err = SaveAttachment(b, emailAddress, filename, origin); err != nil {
 					return "", 0, err
 				}
 			}

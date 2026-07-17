@@ -13,6 +13,20 @@ import (
 	"github.com/emersion/go-imap"
 )
 
+const (
+	maxRecipientSegmentLength = 64
+	maxSubjectSegmentLength   = 48
+)
+
+// AttachmentOrigin stores metadata used to identify the source email for a saved attachment.
+type AttachmentOrigin struct {
+	Timestamp time.Time
+	Recipient string
+	Subject   string
+	UID       uint32
+	Mailbox   string
+}
+
 var resultCount = 1
 
 // PrettyPrint outputs a JSON-encoded representation of an interface
@@ -104,9 +118,60 @@ func InStringSlice(val string, slice []string) bool {
 	return false
 }
 
-// SaveAttachment will save an attachment to <outdir>/<email>/<DD-Mon-YY>/<hash>-<filename>
+func sanitizePathSegment(raw, fallback string, maxLen int) string {
+	raw = strings.TrimSpace(strings.ToLower(raw))
+
+	var b strings.Builder
+	b.Grow(len(raw))
+
+	lastDash := false
+	for _, r := range raw {
+		isAlphaNum := (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9')
+		isAllowedPunctuation := r == '@' || r == '.' || r == '_'
+
+		if isAlphaNum || isAllowedPunctuation {
+			b.WriteRune(r)
+			lastDash = false
+			continue
+		}
+
+		if !lastDash {
+			b.WriteByte('-')
+			lastDash = true
+		}
+	}
+
+	out := strings.Trim(b.String(), "-.")
+	if out == "" {
+		out = fallback
+	}
+
+	if len(out) > maxLen {
+		out = strings.Trim(out[:maxLen], "-.")
+		if out == "" {
+			out = fallback
+		}
+	}
+
+	return out
+}
+
+func emailFolderName(origin AttachmentOrigin) string {
+	recipient := sanitizePathSegment(origin.Recipient, "unknown-recipient", maxRecipientSegmentLength)
+	subject := sanitizePathSegment(origin.Subject, "no-subject", maxSubjectSegmentLength)
+
+	uidPart := "unknown"
+	if origin.UID > 0 {
+		uidPart = fmt.Sprintf("%d", origin.UID)
+	}
+
+	return fmt.Sprintf("to-%s__subj-%s__uid-%s", recipient, subject, uidPart)
+}
+
+// SaveAttachment will save an attachment to
+// <outdir>/<YYYY-MM-DD>/<sender>/<to-recipient__subj-subject__uid-uid>/<hash>-<filename>
 // returns the output file path and/or error
-func SaveAttachment(b []byte, emailAddress, fileName string, timestamp time.Time) (string, error) {
+func SaveAttachment(b []byte, emailAddress, fileName string, origin AttachmentOrigin) (string, error) {
 	fileName = path.Clean(filepath.Base(fileName))
 
 	if fileName == "" {
@@ -119,18 +184,18 @@ func SaveAttachment(b []byte, emailAddress, fileName string, timestamp time.Time
 
 	hashed := fmt.Sprintf("%x-%s", hash[0:3], fileName)
 
-	outDir := path.Clean(path.Join(Config.SavePath, emailAddress))
+	datePart := "unknown-date"
+	if !origin.Timestamp.IsZero() {
+		datePart = origin.Timestamp.Format("2006-01-02")
+	}
+
+	senderDir := sanitizePathSegment(emailAddress, "no-email", maxRecipientSegmentLength)
+	outDir := path.Clean(path.Join(Config.SavePath, datePart, senderDir, emailFolderName(origin)))
 	if err := CreateDir(outDir); err != nil {
 		return "", err
 	}
 
-	emailDate := timestamp.Format("02-Jan-06")
-	outDirWithDate := path.Clean(path.Join(outDir, emailDate))
-	if err := CreateDir(outDirWithDate); err != nil {
-		return "", err
-	}
-
-	outFile := path.Clean(path.Join(outDirWithDate, hashed))
+	outFile := path.Clean(path.Join(outDir, hashed))
 	if FileExists(outFile) {
 		Log.WarningF(" - %s already exists", outFile)
 		return outFile, nil
@@ -156,7 +221,9 @@ func SaveAttachment(b []byte, emailAddress, fileName string, timestamp time.Time
 	bytes := uint32(bytesWritten)
 
 	// set timestamp
-	_ = os.Chtimes(outFile, timestamp, timestamp)
+	if !origin.Timestamp.IsZero() {
+		_ = os.Chtimes(outFile, origin.Timestamp, origin.Timestamp)
+	}
 
 	Log.NoticeF(" - Saved %s (%s)", outFile, ByteCountSI(bytes))
 
