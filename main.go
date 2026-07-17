@@ -129,8 +129,8 @@ func main() {
 	}
 
 	for _, rule := range lib.Config.Rules {
-		// If we are removing or saving attachments, then pull the whole message in the search
-		if doActions && (rule.RemoveAttachments() || rule.SaveAttachments()) {
+		// If we are removing, saving attachments, or exporting, pull the whole message
+		if doActions && (rule.RemoveAttachments() || rule.SaveAttachments() || rule.ExportMailbox()) {
 			headersOnly = false
 		}
 
@@ -256,6 +256,16 @@ func main() {
 			continue
 		}
 
+		// Create mbox only after we know there are matching UIDs (avoids empty files / leaks).
+		var mboxFile *lib.MBOXFile
+		if doActions && rule.ExportMailbox() {
+			mboxFile, err = lib.CreateMBOX(rule.Mailbox)
+			if err != nil {
+				lib.Log.Errorf(err.Error())
+				continue
+			}
+		}
+
 		// add messages to the queue
 		for _, sr := range searchRes {
 			seqSet.AddNum(sr)
@@ -267,6 +277,9 @@ func main() {
 		if headersOnly {
 			// list-only don't need to download entire mail, just headers
 			section.Specifier = imap.HeaderSpecifier
+		} else if doActions && rule.ExportMailbox() {
+			// BODY.PEEK[] avoids setting \Seen while exporting full messages
+			section.Peek = true
 		}
 
 		items := []imap.FetchItem{imap.FetchEnvelope, imap.FetchFlags, imap.FetchInternalDate, imap.FetchRFC822Size, section.FetchItem()}
@@ -282,6 +295,7 @@ func main() {
 
 		// total size of all matching emails
 		var totalSize uint32
+		exportedCount := 0
 
 		for msg := range messages {
 			// IMAP BEFORE/SINCE are date-only and may return messages near the cutoff
@@ -298,6 +312,14 @@ func main() {
 			lib.PrintHdrDetails(msg)
 
 			totalSize = totalSize + msg.Size
+
+			if doActions && rule.ExportMailbox() {
+				if err := lib.ExportMessage(msg, mboxFile.Writer); err != nil {
+					lib.Log.Errorf("%s", err)
+					continue
+				}
+				exportedCount++
+			}
 
 			deletedAttachments := 0
 
@@ -355,8 +377,17 @@ func main() {
 			}
 		}
 
+		if mboxFile != nil {
+			if err := mboxFile.Close(); err != nil {
+				lib.Log.Errorf("closing mbox: %s", err)
+			}
+			if exportedCount > 0 {
+				lib.Log.NoticeF("Exported %d messages from \"%s\" to mbox", exportedCount, rule.Mailbox)
+			}
+		}
+
 		if totalSize > 0 {
-			lib.Log.DebugF("=====\nTotal size: %s\n=====\n", lib.ByteCountSI(totalSize))
+			lib.Log.DebugF("=====\nTotal size: %s ( %d messages )\n=====\n", lib.ByteCountSI(totalSize), len(searchRes))
 		}
 	}
 }

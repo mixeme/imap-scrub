@@ -31,6 +31,11 @@ func HandleMessage(msg *imap.Message, rule Rule) (string, int, error) {
 
 	r := msg.GetBody(&section)
 	if r == nil {
+		// Also accept BODY.PEEK[] (used when export_mailbox downloads without setting \Seen)
+		section.Peek = true
+		r = msg.GetBody(&section)
+	}
+	if r == nil {
 		return "", 0, fmt.Errorf("Server didn't returned message body")
 	}
 

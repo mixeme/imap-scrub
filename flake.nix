@@ -20,7 +20,7 @@
     {
       packages.${system}.default = pkgs.buildGoModule {
         inherit src pname version;
-        vendorHash = "sha256-y6gALgt7idtACYasSIvuFXAe9ZBi2ua9DItbA/7Lzbw=";
+        vendorHash = "sha256-WghAGk9PVFcT8V57rSnxeRTvwrjeFBWsp3cxiDDI6HI=";
       };
 
       devShells.${system} = {

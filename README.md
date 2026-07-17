@@ -2,7 +2,7 @@
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/axllent/imap-scrub)](https://goreportcard.com/report/github.com/axllent/imap-scrub)
 
-A command-line utility (Linux, Mac & Windows) to reduce the size of your IMAP mailbox through a series of pre-defined rules. Each rule contain a series of search modifiers, and one or two actions (`delete`, `remove_attachments`, `save_attachments`).
+A command-line utility (Linux, Mac & Windows) to reduce the size of your IMAP mailbox through a series of pre-defined rules. Each rule contain a series of search modifiers, and one or two actions (`delete`, `remove_attachments`, `save_attachments`, `export_mailbox`).
 
 I wrote this tool because I receive many emails with attachments that I need for a limited time only. After a year or two, these attachments do nothing more than take up space, however I did not want to just delete the emails themselves as many contain information that I would rather keep. In another example, certain emails I just do not want to keep at all after a certain period (social media notifications etc).
 
@@ -50,6 +50,10 @@ rules:
     older_than: 90
     newer_than: 30
     actions: save_attachments, remove_attachments
+  - mailbox: "[Gmail]/All Mail"
+    from: archive-me@example.com
+    older_than: 365
+    actions: export_mailbox
 ```
 
 See [All yaml config options](#all-yaml-config-options) below for more info.
@@ -131,7 +135,7 @@ port:      993    # IMAP port number (default 993 if SSL is true, else 143)
 user:      string # IMAP username
 pass:      string # IMAP password (use either pass or pass_file)
 pass_file: string # path to file containing IMAP password (optional, takes precedence over pass)
-save_path: string # local directory to save attachments (default current dir)
+save_path: string # local directory to save attachments and mbox exports (default current dir)
 use_trash: false  # see below
 rules:
   - mailbox:         string # IMAP mailbox name see below)
@@ -199,15 +203,18 @@ If `use_trash` is set to `true`, and your IMAP returns a trash mailbox, then del
 
 ### Option: `actions`
 
-There are three possible actions, namely:
+There are four possible actions, namely:
 
 - `save_attachments` will save any attachments under a date → sender → per-email metadata layout (date from the message `Date` header):
 
   `save_path/<YYYY-MM-DD>/<sender>/<to-<recipient>__subj-<short-subject>__uid-<uid>>/<hash>-<filename>`
 - `remove_attachments` will remove the all attachments and inline images from the original email 
 - `delete` will simply delete the email
+- `export_mailbox` will write matching messages to a local `mbox` file under `save_path/<mailbox-path>/mbox` (nested IMAP mailbox names become directories)
 
 The `actions:` config may include a combination of `save_attachments` and one other (comma-separated), eg :`actions: save_attachments, remove_attachments`. 
+
+`export_mailbox` can be used alone or combined with other actions (for example export then `delete`).
 
 **Note** that you cannot combine `remove_attachments` and `delete`.
 

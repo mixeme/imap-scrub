@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path"
 	"path/filepath"
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	"github.com/emersion/go-imap"
+	mboxlib "github.com/emersion/go-mbox"
 )
 
 const (
@@ -229,3 +231,88 @@ func SaveAttachment(b []byte, emailAddress, fileName string, origin AttachmentOr
 
 	return outFile, nil
 }
+
+// MBOXFile wraps an mbox writer and its underlying file so both can be closed.
+type MBOXFile struct {
+	Writer *mboxlib.Writer
+	file   *os.File
+}
+
+// Close finalizes the mbox stream and closes the file.
+func (m *MBOXFile) Close() error {
+	var firstErr error
+	if m.Writer != nil {
+		if err := m.Writer.Close(); err != nil && firstErr == nil {
+			firstErr = err
+		}
+	}
+	if m.file != nil {
+		if err := m.file.Close(); err != nil && firstErr == nil {
+			firstErr = err
+		}
+	}
+	return firstErr
+}
+
+// CreateMBOX creates save_path/<mailbox-path>/mbox for the given IMAP mailbox name.
+// Nested mailbox names (e.g. "Archive/2024") become nested directories.
+func CreateMBOX(mailboxName string) (*MBOXFile, error) {
+	mailboxParts := strings.Split(mailboxName, "/")
+	outDir := path.Clean(path.Join(Config.SavePath, path.Join(mailboxParts...)))
+	if err := CreateDir(outDir); err != nil {
+		return nil, err
+	}
+
+	outFile := path.Clean(path.Join(outDir, "mbox"))
+	if FileExists(outFile) {
+		Log.WarningF(" - File '%s' already exists", outFile)
+		return nil, fmt.Errorf("mbox file already exists: %s", outFile)
+	}
+
+	// #nosec
+	file, err := os.OpenFile(outFile, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0664)
+	if err != nil {
+		return nil, err
+	}
+
+	return &MBOXFile{
+		Writer: mboxlib.NewWriter(file),
+		file:   file,
+	}, nil
+}
+
+// ExportMessage writes a single IMAP message into an mbox writer.
+func ExportMessage(msg *imap.Message, mboxWriter *mboxlib.Writer) error {
+	if msg == nil {
+		return fmt.Errorf("Server didn't returned message")
+	}
+	if mboxWriter == nil {
+		return fmt.Errorf("mbox writer is nil")
+	}
+
+	var body io.Reader
+	for _, literal := range msg.Body {
+		body = literal
+		break
+	}
+	if body == nil {
+		return fmt.Errorf("Server didn't returned message body")
+	}
+
+	from := "unknown"
+	if msg.Envelope != nil && len(msg.Envelope.From) > 0 {
+		from = msg.Envelope.From[0].Address()
+	}
+
+	w, err := mboxWriter.CreateMessage(from, msg.InternalDate)
+	if err != nil {
+		return err
+	}
+	if _, err := io.Copy(w, body); err != nil {
+		return err
+	}
+
+	Log.NoticeF(" - Exported message to local mbox")
+	return nil
+}
+

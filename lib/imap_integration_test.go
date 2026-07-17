@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -57,7 +58,22 @@ func loadIntegrationConfig(t *testing.T) imapTestConfig {
 	if cfg.PassFile != "" {
 		passPath := cfg.PassFile
 		if !filepath.IsAbs(passPath) {
-			passPath = filepath.Join(root, passPath)
+			configDir := filepath.Dir(configPath)
+			candidates := []string{
+				filepath.Join(configDir, filepath.Base(passPath)), // same dir as config
+				filepath.Join(filepath.Dir(configDir), passPath),  // repo root when config is in dev/
+				filepath.Join(root, passPath),                     // this checkout's root
+			}
+			passPath = ""
+			for _, cand := range candidates {
+				if _, err := os.Stat(cand); err == nil {
+					passPath = cand
+					break
+				}
+			}
+			if passPath == "" {
+				t.Fatalf("pass_file %q not found (tried relative to config and repo roots)", cfg.PassFile)
+			}
 		}
 		passCfg := YamlConfig{PassFile: passPath}
 		if err := ApplyPassFile(&passCfg); err != nil {
@@ -143,6 +159,37 @@ func fetchBySubject(t *testing.T, c *client.Client, subject string) *imap.Messag
 		t.Fatalf("message not found: %q (run scripts/seed-imap-test.py)", subject)
 	}
 	return match
+}
+
+// fetchFullBySubject fetches a fixture with BODY.PEEK[] (same path as export_mailbox).
+func fetchFullBySubject(t *testing.T, c *client.Client, subject string) *imap.Message {
+	t.Helper()
+
+	hdr := fetchBySubject(t, c, subject)
+
+	seqset := new(imap.SeqSet)
+	seqset.AddNum(hdr.Uid)
+	var section imap.BodySectionName
+	section.Peek = true
+	items := []imap.FetchItem{imap.FetchEnvelope, imap.FetchInternalDate, section.FetchItem()}
+
+	messages := make(chan *imap.Message, 1)
+	done := make(chan error, 1)
+	go func() {
+		done <- c.UidFetch(seqset, items, messages)
+	}()
+
+	msg := <-messages
+	if err := <-done; err != nil {
+		t.Fatalf("fetch full body: %v", err)
+	}
+	if msg == nil {
+		t.Fatalf("full body not returned for %q", subject)
+	}
+	if len(msg.Body) == 0 {
+		t.Fatalf("expected BODY.PEEK[] for %q", subject)
+	}
+	return msg
 }
 
 func TestIntegrationPassFileConnects(t *testing.T) {
@@ -282,5 +329,49 @@ func TestIntegrationNewerThanIgnoresEnvelopeDate(t *testing.T) {
 	}
 	if !msg.Envelope.Date.Before(cutoff) {
 		t.Fatalf("fixture envelope Date should be older than cutoff for this scenario: %s", msg.Envelope.Date)
+	}
+}
+
+func TestIntegrationExportMailbox(t *testing.T) {
+	c := connectIntegration(t)
+	if _, err := c.Select("INBOX", true); err != nil {
+		t.Fatalf("select INBOX: %v", err)
+	}
+
+	subject := "[imap-scrub-test] recent message from sender-b"
+	msg := fetchFullBySubject(t, c, subject)
+
+	dir := t.TempDir()
+	orig := Config.SavePath
+	Config.SavePath = dir
+	defer func() { Config.SavePath = orig }()
+
+	mboxFile, err := CreateMBOX("INBOX")
+	if err != nil {
+		t.Fatalf("CreateMBOX: %v", err)
+	}
+
+	if err := ExportMessage(msg, mboxFile.Writer); err != nil {
+		_ = mboxFile.Close()
+		t.Fatalf("ExportMessage: %v", err)
+	}
+	if err := mboxFile.Close(); err != nil {
+		t.Fatalf("Close: %v", err)
+	}
+
+	outPath := filepath.Join(dir, "INBOX", "mbox")
+	data, err := os.ReadFile(outPath)
+	if err != nil {
+		t.Fatalf("read mbox: %v", err)
+	}
+	content := string(data)
+	if !strings.Contains(content, "From ") {
+		t.Fatalf("mbox missing From line:\n%s", content)
+	}
+	if !strings.Contains(content, subject) {
+		t.Fatalf("mbox missing subject %q:\n%s", subject, content)
+	}
+	if !strings.Contains(content, "sender-b@test.com") {
+		t.Fatalf("mbox missing sender-b address:\n%s", content)
 	}
 }
