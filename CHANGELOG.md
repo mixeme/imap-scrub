@@ -20,6 +20,7 @@
 - Add Nix flake (`flake.nix`) and direnv `.envrc` for reproducible builds (ported from ahbk/imap-scrub@4da9393, thanks @ahbk)
 - Add CI job that runs `nix build` for the flake package
 - Add `export_mailbox` action to write matching messages to a local mbox file (ported from aheissenberger/imap-scrub@05ace3ee, thanks @aheissenberger)
+- Add VS Code / Cursor dev container for Go 1.20 (ported from mikulcak/imap-scrub@e2c84719, thanks @mikulcak)
 
 
 ## [0.0.6]

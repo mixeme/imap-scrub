@@ -64,6 +64,8 @@ See [All yaml config options](#all-yaml-config-options) below for more info.
 Download the [latest binary release](https://github.com/axllent/imap-scrub/releases/latest) for your system, 
 or build from source `go install github.com/axllent/imap-scrub@latest`(go >= 1.11 required)
 
+For a ready-made Go 1.20 toolchain in VS Code / Cursor, see [`.devcontainer/README.md`](.devcontainer/README.md).
+
 ### Building local binaries
 
 The build scripts write artifacts to the `dist` directory and can be run from any
