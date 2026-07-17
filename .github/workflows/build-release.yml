@@ -1,14 +1,24 @@
 name: Release Go Binaries
 
-on: 
+on:
   release:
     types: [created]
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Existing release tag to upload binaries to (e.g. v0.1.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
 
 jobs:
   releases-matrix:
     name: Release Go Binary
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         goos: [linux, windows, darwin]
         goarch: ["386", amd64, arm64]
@@ -18,17 +28,19 @@ jobs:
           - goarch: arm64
             goos: windows
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-    - uses: wangyoucao577/go-release-action@v1.39
-      with:
-        binary_name: "imap-scrub"
-        asset_name: "imap-scrub-${{ matrix.goos }}-${{ matrix.goarch }}"
-        extra_files: LICENSE README.md
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        md5sum: false
-        overwrite: true
-        goos: ${{ matrix.goos }}
-        goarch: ${{ matrix.goarch }}
-        pre_command: export GO386=softfloat CGO_ENABLED=0
-        ldflags: -s -w -X "main.appVersion=${{ github.ref_name }}"
+      - uses: wangyoucao577/go-release-action@v1.55
+        with:
+          binary_name: "imap-scrub"
+          asset_name: "imap-scrub-${{ matrix.goos }}-${{ matrix.goarch }}"
+          extra_files: LICENSE README.md
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          md5sum: false
+          overwrite: true
+          goos: ${{ matrix.goos }}
+          goarch: ${{ matrix.goarch }}
+          goversion: "go.mod"
+          release_tag: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || '' }}
+          pre_command: export CGO_ENABLED=0
+          ldflags: -s -w -X "main.appVersion=${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}"
