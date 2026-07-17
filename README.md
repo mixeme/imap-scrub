@@ -3,13 +3,22 @@
 > **Actively maintained continuation of [axllent/imap-scrub](https://github.com/axllent/imap-scrub).**  
 > Upstream last released `0.0.6` (Apr 2024). This fork consolidates community ports and continues development: [`mixeme/imap-scrub`](https://github.com/mixeme/imap-scrub).
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/mixeme/imap-scrub)](https://goreportcard.com/report/github.com/mixeme/imap-scrub)
-
-Documentation: [Roadmap](docs/ROADMAP.md) · [Changelog](docs/CHANGELOG.md)
-
-A command-line utility (Linux, Mac & Windows) to reduce the size of your IMAP mailbox through a series of pre-defined rules. Each rule contain a series of search modifiers, and one or two actions (`delete`, `remove_attachments`, `save_attachments`, `export_mailbox`).
+A command-line utility (Linux, Mac & Windows) to reduce the size of your IMAP mailbox through a series of pre-defined rules. Each rule contains a series of search modifiers, and one or two actions (`delete`, `remove_attachments`, `save_attachments`, `export_mailbox`).
 
 I wrote this tool because I receive many emails with attachments that I need for a limited time only. After a year or two, these attachments do nothing more than take up space, however I did not want to just delete the emails themselves as many contain information that I would rather keep. In another example, certain emails I just do not want to keep at all after a certain period (social media notifications etc).
+
+Changelog: [docs/CHANGELOG.md](docs/CHANGELOG.md)
+
+
+## Installing
+
+Download the [latest binary release](https://github.com/mixeme/imap-scrub/releases/latest) for your system.
+
+You can also update an existing install with:
+
+```
+imap-scrub -u
+```
 
 
 ## Usage options
@@ -25,12 +34,16 @@ Options:
   -v, --version        show app version
 ```
 
+Without `-y` / `--yes`, IMAP-Scrub only lists matching messages (dry run). Pass `-y` to apply the configured actions.
+
+
 ## Configuration
 
 Each mail account should have a yaml configuration file. IMAP-Scrub does not currently support OAUTH, so username/password IMAP login is required.
 
-## Example config
+For Gmail with 2-Step Verification, use an [App Password](https://support.google.com/accounts/answer/185833) instead of your normal account password.
 
+### Example config
 
 ```yaml
 name: My Gmail Account
@@ -62,74 +75,6 @@ rules:
 ```
 
 See [All yaml config options](#all-yaml-config-options) below for more info.
-
-
-## Installing
-
-Download the [latest binary release](https://github.com/mixeme/imap-scrub/releases/latest) for your system, 
-or build from source `go install github.com/mixeme/imap-scrub@latest` (Go >= 1.23 required)
-
-For a ready-made Go 1.23 toolchain in VS Code / Cursor, see [`.devcontainer/README.md`](.devcontainer/README.md).
-
-### Building local binaries
-
-The build scripts write artifacts to the `dist` directory and can be run from any
-working directory.
-
-Current OS/architecture:
-
-```sh
-bash scripts/build.sh
-```
-
-On Windows (amd64):
-
-```bat
-scripts\build-windows.bat
-```
-
-On Linux (amd64):
-
-```sh
-bash scripts/build-linux.sh
-```
-
-On Linux using Docker:
-
-```sh
-bash scripts/build-linux-docker.sh
-```
-
-macOS cross-compile (amd64 + arm64; works from Linux or a container):
-
-```sh
-bash scripts/build-macos.sh
-```
-
-This writes:
-
-- `dist/imap-scrub-darwin-amd64` (Intel Macs)
-- `dist/imap-scrub-darwin-arm64` (Apple Silicon)
-
-GitHub release builds inject the version from the release tag via CI. Local
-builds report `dev` unless you pass `-ldflags "-X main.appVersion=<version>"`
-(or set `VERSION` when running `scripts/build-macos.sh`).
-
-### Nix flake
-
-With [Nix](https://nixos.org/) and flakes enabled:
-
-```sh
-nix build
-```
-
-For a development shell (Go toolchain):
-
-```sh
-nix develop
-```
-
-With [direnv](https://direnv.net/), `.envrc` loads the flake automatically.
 
 
 ## All yaml config options
@@ -198,7 +143,7 @@ from: billing@example.com, invoices@example.com, receipts@example.com
 
 ### Option: `mailbox`
 
-The mailbox you wish to search. On standard IMAP servers this is probably `INBOX`. 
+The mailbox you wish to search. On standard IMAP servers this is probably `INBOX`.
 
 On Gmail this is possibly `[Gmail]/All Mail` or `[Google Mail]/All Mail`, but may differ based on your selected language. To list the mailboxes on your IMAP server to make a choice, run `imap-scrub -m <your-config.yml>` which will print out all mailboxes in your account.
 
@@ -208,6 +153,16 @@ On Gmail this is possibly `[Gmail]/All Mail` or `[Google Mail]/All Mail`, but ma
 If `use_trash` is set to `true`, and your IMAP returns a trash mailbox, then deleted messages will be moved into this mailbox. **Note** that Gmail does not support IMAP delete, so `use_trash` will always be set to `true` for Gmail.
 
 
+### Option: `include_unread` / `include_starred`
+
+By default both are `false`, so rules only match **read** and **unstarred** messages:
+
+- `include_unread: false` — skip unread (`\Seen` required)
+- `include_starred: false` — skip starred / flagged (`\Flagged` excluded)
+
+Set either to `true` when you want that class of messages included in the search.
+
+
 ### Option: `actions`
 
 There are four possible actions, namely:
@@ -215,11 +170,11 @@ There are four possible actions, namely:
 - `save_attachments` will save any attachments under a date → sender → per-email metadata layout (date from the message `Date` header):
 
   `save_path/<YYYY-MM-DD>/<sender>/<to-<recipient>__subj-<short-subject>__uid-<uid>>/<hash>-<filename>`
-- `remove_attachments` will remove the all attachments and inline images from the original email 
+- `remove_attachments` will remove the all attachments and inline images from the original email
 - `delete` will simply delete the email
 - `export_mailbox` will write matching messages to a local `mbox` file under `save_path/<mailbox-path>/mbox` (nested IMAP mailbox names become directories)
 
-The `actions:` config may include a combination of `save_attachments` and one other (comma-separated), eg :`actions: save_attachments, remove_attachments`. 
+The `actions:` config may include a combination of `save_attachments` and one other (comma-separated), eg :`actions: save_attachments, remove_attachments`.
 
 `export_mailbox` can be used alone or combined with other actions (for example export then `delete`).
 
@@ -236,6 +191,11 @@ The `actions:` config may include a combination of `save_attachments` and one ot
 
 The IMAP `BEFORE` / `SINCE` searches are date-only (no time or timezone), so the server may return messages near the cutoff. IMAP-Scrub re-checks each result locally before listing or changing anything.
 
-With debug logging enabled, skipped messages show the internal date and cutoff in your local timezone. If the envelope `Date` header falls on a different calendar day, a second line explains the difference.
+Skipped messages near the cutoff are logged with the internal date and cutoff in your local timezone. If the envelope `Date` header falls on a different calendar day, a second line explains the difference.
 
 Example: with `older_than: 3` on 18 June, the cutoff is 15 June 00:00 local. A message whose internal date is 15 June 01:21 local is kept (not old enough), even if its `Date` header says 11 June.
+
+
+## Development
+
+For building from source, Nix, the dev container, and related notes, see [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
