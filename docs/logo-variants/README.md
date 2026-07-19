@@ -1,80 +1,97 @@
-# Logo Variants — imap-scrub
+# Logo variants — imap-scrub
 
-Three PowerShell rendering scripts that generate logo variants by cutting and erasing the envelope icon. Each script uses GDI+ with 4× supersampling and downscaling for clean antialiased geometry.
+PowerShell + GDI+ scripts that render the envelope icon of the logo. Each script
+renders the icon at **4× supersampling** on a transparent layer, downscales it for
+clean antialiased edges, then composes it onto the base image
+`docs/assets/imap-scrub-logo-3.png` (the icon area is wiped and redrawn; the
+`IMAP-Scrub` / `clean your mailbox` text is reused from the base).
 
-## Variants
+> Requires Windows PowerShell 5+ (`System.Drawing`). Run from anywhere — paths are
+> absolute inside each script. The base `imap-scrub-logo-3.png` must exist: only
+> its **text** is reused (the icon half is wiped), so its own icon art doesn't matter.
 
-### `render-1-3-cut.ps1` → `imap-scrub-logo-3.png`
+---
 
-**1/3 cut:** Envelope with the right corner sliced away (~31% of the area).
+## Which script does what
 
-- **Cut line:** ~45° angle, enters the right edge at y≈437, exits the bottom edge at x≈163.
-- **Kerf:** ~46px white gap between the main body and the detached piece (perpendicular offset).
-- **Teal stripe:** Centered in the kerf, overlays the envelope; left line of the flap and bottom edge extend under it.
-- **Geometry:** Main piece loses the right diagonal (would be only 20px anyway); detached corner includes both diagonals and the clipped edges.
-- **Speed dashes:** Three on each side of the stripe, aligned to its direction.
+| Script | Output PNG | Purpose |
+| --- | --- | --- |
+| `render-whole.ps1`  | `imap-scrub-logo-3-whole.png`  | **Base.** The whole envelope, solid dark, no cut/erase/teal. The clean silhouette everything else builds on. |
+| `render-eraser.ps1` | `imap-scrub-logo-3-erased.png` | **Current design.** Whole envelope with the lower-right half fading out (erase gradient) + a teal eraser on the diagonal, then the whole logo is trimmed, height-aligned and colour-normalised. |
 
-**Usage:**
+Each script accepts an optional output path as `$args[0]`, e.g. to preview without
+touching the committed asset:
+
 ```powershell
-.\render-1-3-cut.ps1                    # Output to imap-scrub-logo-3.png
-.\render-1-3-cut.ps1 "path/to/output.png"  # Custom output path
+.\render-eraser.ps1 "C:\temp\preview.png"
 ```
 
-### `render-1-2-cut.ps1` → `imap-scrub-logo-3-half.png`
+---
 
-**1/2 cut:** Envelope split in half by a 45° diagonal (~52% removed).
+## Shared geometry (source of truth)
 
-- **Cut line:** Exactly 45° (x+y constant), enters the top edge at x≈388, exits the bottom at x≈153.
-- **Kerf:** ~46px white gap, same as 1/3 variant.
-- **Special property:** The flap's peak (swell apex) is bisected by the cut and appears on the detached half; the cut passes squarely through the horizontal center.
-- **Main piece:** Left line of the flap survives; right diagonal and peak are removed.
-- **Teal stripe:** Longer than in 1/3 variant, exits through the top edge; exits toward upper-right.
+Both scripts draw the same envelope. Coordinates are in the original 1536×1024 icon
+space (stroke **centre** lines), stroke width **18**, round caps/joins:
 
-**Usage:**
-```powershell
-.\render-1-2-cut.ps1                    # Output to imap-scrub-logo-3-half.png
-.\render-1-2-cut.ps1 "path/to/output.png"
-```
+- **Body:** rounded rectangle L=114 T=370 R=442 B=605, corner radius 20.
+- **Flap:** polyline (124,380) → (278,508) → (432,380) — apex at (278,508).
+- **Left diagonal:** (122,597) → (241,478).
+- **Right diagonal:** (434,597) → (315,478).
+- **Erase boundary:** the 45° line `x + y = 758.5`.
 
-### `render-erased.ps1` → `imap-scrub-logo-3-erased.png`
+**Brand colours:**
 
-**1/2 erased (not cut):** Envelope remains whole; the right half is rendered in barely-visible light gray (~11% opacity on white).
+| Ink | RGB |
+| --- | --- |
+| Dark navy | 21, 36, 44 |
+| Teal | 11, 176, 167 |
+| Teal (dark sleeve) | 7, 128, 121 |
+| Gray tagline | 97, 111, 123 |
 
-- **Eraser boundary:** Same 45° line as the half-cut variant (x+y = 758.5).
-- **Kerf:** No gap; both halves sit in the same position. The teal stripe runs along the boundary.
-- **Color:** Intact left half in dark (RGB 21,36,44); erased right half in opaque light-gray (RGB 228,230,231, chosen to avoid transparency-stacking at overlaps).
-- **Effect:** Looks like the envelope was partially rubbed out or faded, with the teal stroke acting as a boundary.
-- **Geometry:** No piece displacement; flap apex and all structure remain in place.
+---
 
-**Usage:**
-```powershell
-.\render-erased.ps1                     # Output to imap-scrub-logo-3-erased.png
-.\render-erased.ps1 "path/to/output.png"
-```
+## `render-whole.ps1` — the base
 
-## Technical Notes
+Just `Draw-Envelope` with the dark navy pen and both diagonals, no clipping, no
+teal. Use it to regenerate the clean base, or as the starting point for a new
+variant (copy it and add your effect between the draw and the compose steps).
 
-- **Supersampling:** All scripts render at 4× the target resolution (1536×1024 → 6144×4096) then downscale, yielding antialiased edges even at clip boundaries.
-- **Base image:** All scripts read from `docs/assets/imap-scrub-logo-3.png` and wipe the icon area (x=0…572) before compositing.
-- **Coordinate system:** Icon coordinates are in the original 1536×1024 space. Stroke centers use: envelope L=114 T=370 R=442 B=605 (r=20 corners); flap peak at (278, 508).
-- **Colors:**
-  - Dark navy: RGB 21, 36, 44
-  - Teal: RGB 11, 176, 167
-  - Faint (erased-variant only): RGB 228, 230, 231
-- **Stroke:** All lines use round caps and round joins for smooth endpoints.
+---
 
-## Customization
+## `render-eraser.ps1` — the current pipeline
 
-To adjust geometry or colors:
+Stages, in order, with the knobs you'll most likely want to touch:
 
-1. **Cut angle or position:** Edit the `clipA` and `clipB` polygon points (use slope and intercept to recalculate boundary vertices).
-2. **Kerf width:** Change the translation offset in `$gb.TranslateTransform(dx, dy)` (currently 24,39 for 1/3; 33,33 for 1/2).
-3. **Stripe position:** Edit the `$gb.DrawLine($stripe, ...)` endpoints.
-4. **Dash positions:** Adjust the four `$gb.DrawLine($dNN, ...)` calls in the "speed dashes" section.
-5. **Colors:** Edit RGB values in `$dark`, `$teal`, or `$faint` assignments.
-6. **Stripe width:** Change the `28` in `New-Pen $teal 28`.
+1. **Two envelope halves**, split by `x + y = 758.5` (`$clipA` intact / `$clipB`
+   erased), no piece displacement.
+   - Intact (upper-left) half: solid dark navy.
+   - Erased (lower-right) half: drawn with a **linear-gradient pen** running along
+     (1,1) — from `$faint` grey on the boundary to the background white past the
+     far corner. Knobs:
+     - `$faint` — grey tone at the diagonal (how visible the "in-process" part is).
+     - `$gp1` / `$gp2` — gradient start (on the diagonal) and end (past the
+       bottom-right corner). Move `$gp2` in/out to make the fade reach white sooner/later.
 
-## Requirements
+2. **Teal eraser** on the diagonal (drawn after the halves). Knobs:
+   - `$ecx` / `$ecy` — slide the eraser along the diagonal (keep `x+y ≈ 758.5`).
+   - `$eLen` / `$eWid` / `$eRad` — size and corner rounding.
+   - `$bandLen` — width of the darker sleeve band at the leading end.
+   - `$teal` / `$tealDark` — eraser colours.
 
-- Windows PowerShell 5.0 or later (uses `System.Drawing`).
-- `docs/assets/imap-scrub-logo-3.png` as the base image (will be read and modified).
+3. **Trim + height-align** (post-process): measures the content bounds of the icon
+   (x < `$SPLIT`) and the text (x ≥ `$SPLIT`), centres their vertical mid-lines on a
+   common line, and crops to content with a uniform margin. Knobs:
+   - `$PAD` — margin around the whole logo (currently 48 px).
+   - `$SPLIT` — x that separates icon from text when measuring (560).
+   - The icon↔text horizontal gap is preserved from the source layout.
+
+4. **Colour flatten** (post-process): the base PNG's text fill is mottled (baked-in
+   noise). Each ink is snapped to its exact brand colour, blending toward white on
+   anti-aliased edges so glyph outlines stay smooth:
+   - **teal** → (11,176,167), applied globally (`Scrub` text + eraser body); the
+     dark sleeve is excluded by the `G > 140` test.
+   - **navy** → (21,36,44), text region only, upper line.
+   - **gray** → (97,111,123), text region only, lower line.
+   - The split between the two text lines is found dynamically (the white gap
+     between them), so it survives layout changes. The icon (erase gradient +
+     eraser) is left untouched via the `x ≥ $dstTextX` guard.
