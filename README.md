@@ -1,5 +1,7 @@
 # IMAP-Scrub
 
+![IMAP-Scrub Logo](docs/assets/imap-scrub-logo-3-erased.png)
+
 > **Actively maintained continuation of [axllent/imap-scrub](https://github.com/axllent/imap-scrub).**  
 > Upstream last released `0.0.6` (Apr 2024). This fork consolidates community ports and continues development: [`mixeme/imap-scrub`](https://github.com/mixeme/imap-scrub).
 
