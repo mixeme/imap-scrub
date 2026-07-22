@@ -63,6 +63,26 @@ This writes:
 - `dist/imap-scrub-darwin-arm64` (Apple Silicon)
 
 
+## Homebrew formula
+
+[`Formula/imap-scrub.rb`](../Formula/imap-scrub.rb) lets users `brew tap mixeme/imap-scrub https://github.com/mixeme/imap-scrub && brew install imap-scrub` directly from this repo — no separate `homebrew-*` tap repo needed.
+
+When cutting a new release, bump the formula's `url` (tag) and `sha256` to match:
+
+```sh
+curl -sL -o /tmp/imap-scrub.tar.gz https://github.com/mixeme/imap-scrub/archive/refs/tags/v<new-version>.tar.gz
+sha256sum /tmp/imap-scrub.tar.gz
+```
+
+Test locally before pushing:
+
+```sh
+brew install --build-from-source ./Formula/imap-scrub.rb
+brew test imap-scrub
+brew audit --strict --online ./Formula/imap-scrub.rb
+```
+
+
 ## Nix flake
 
 With [Nix](https://nixos.org/) and flakes enabled:

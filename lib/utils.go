@@ -1,6 +1,7 @@
 package lib
 
 import (
+	"bufio"
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
@@ -233,9 +234,13 @@ func SaveAttachment(b []byte, emailAddress, fileName string, origin AttachmentOr
 }
 
 // MBOXFile wraps an mbox writer and its underlying file so both can be closed.
+// It also tracks the Message-Id headers already present in the file (from a
+// prior export run) so callers can resume appending without duplicating
+// messages; see Contains and Add.
 type MBOXFile struct {
-	Writer *mboxlib.Writer
-	file   *os.File
+	Writer      *mboxlib.Writer
+	file        *os.File
+	existingIDs map[string]bool
 }
 
 // Close finalizes the mbox stream and closes the file.
@@ -254,31 +259,105 @@ func (m *MBOXFile) Close() error {
 	return firstErr
 }
 
-// CreateMBOX creates save_path/<mailbox-path>/mbox for the given IMAP mailbox name.
-// Nested mailbox names (e.g. "Archive/2024") become nested directories.
+// Contains reports whether messageID was already present in the mbox file
+// when it was opened (i.e. from a previous export run).
+func (m *MBOXFile) Contains(messageID string) bool {
+	return m.existingIDs[messageID]
+}
+
+// Add records messageID as exported, so a later Contains call in the same
+// run also treats it as a duplicate.
+func (m *MBOXFile) Add(messageID string) {
+	m.existingIDs[messageID] = true
+}
+
+// CreateMBOX opens export_path/<mailbox-path>/mbox for the given IMAP mailbox
+// name, falling back to save_path when export_path is unset. Nested mailbox
+// names (e.g. "Archive/2024") become nested directories.
+//
+// If the mbox file already exists, messages are appended to it rather than
+// overwriting it, and its existing Message-Id headers are indexed (see
+// MBOXFile.Contains) so a rerun of export_mailbox can resume without
+// re-exporting messages it already wrote.
 func CreateMBOX(mailboxName string) (*MBOXFile, error) {
+	basePath := Config.ExportPath
+	if basePath == "" {
+		basePath = Config.SavePath
+	}
+
 	mailboxParts := strings.Split(mailboxName, "/")
-	outDir := path.Clean(path.Join(Config.SavePath, path.Join(mailboxParts...)))
+	outDir := path.Clean(path.Join(basePath, path.Join(mailboxParts...)))
 	if err := CreateDir(outDir); err != nil {
 		return nil, err
 	}
 
 	outFile := path.Clean(path.Join(outDir, "mbox"))
-	if FileExists(outFile) {
-		Log.WarningF(" - File '%s' already exists", outFile)
-		return nil, fmt.Errorf("mbox file already exists: %s", outFile)
+
+	existingIDs, err := scanMBOXMessageIDs(outFile)
+	if err != nil {
+		return nil, err
+	}
+	if len(existingIDs) > 0 {
+		Log.DebugF(" - Resuming \"%s\" (%d messages already exported)", outFile, len(existingIDs))
 	}
 
 	// #nosec
-	file, err := os.OpenFile(outFile, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0664)
+	file, err := os.OpenFile(outFile, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0664)
 	if err != nil {
 		return nil, err
 	}
 
 	return &MBOXFile{
-		Writer: mboxlib.NewWriter(file),
-		file:   file,
+		Writer:      mboxlib.NewWriter(file),
+		file:        file,
+		existingIDs: existingIDs,
 	}, nil
+}
+
+// scanMBOXMessageIDs reads an existing mbox file, if any, and returns the set
+// of Message-Id header values it already contains. A missing file yields an
+// empty set rather than an error.
+func scanMBOXMessageIDs(mboxPath string) (map[string]bool, error) {
+	ids := map[string]bool{}
+
+	// #nosec
+	file, err := os.Open(mboxPath)
+	if os.IsNotExist(err) {
+		return ids, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	const messageIDPrefix = "message-id:"
+
+	reader := mboxlib.NewReader(file)
+	for {
+		msgReader, err := reader.NextMessage()
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			return nil, fmt.Errorf("scanning existing mbox %s: %w", mboxPath, err)
+		}
+
+		scanner := bufio.NewScanner(msgReader)
+		for scanner.Scan() {
+			line := scanner.Text()
+			if line == "" {
+				// end of this message's headers
+				break
+			}
+			if len(line) > len(messageIDPrefix) && strings.EqualFold(line[:len(messageIDPrefix)], messageIDPrefix) {
+				if id := strings.TrimSpace(line[len(messageIDPrefix):]); id != "" {
+					ids[id] = true
+				}
+			}
+		}
+	}
+
+	return ids, nil
 }
 
 // ExportMessage writes a single IMAP message into an mbox writer.

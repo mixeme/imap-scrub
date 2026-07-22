@@ -327,11 +327,22 @@ func main() {
 				totalSize = totalSize + msg.Size
 
 				if doActions && rule.ExportMailbox() {
-					if err := lib.ExportMessage(msg, mboxFile.Writer); err != nil {
+					messageID := ""
+					if msg.Envelope != nil {
+						messageID = msg.Envelope.MessageId
+					}
+
+					if messageID != "" && mboxFile.Contains(messageID) {
+						lib.Log.DebugF(" - Skipping export, already in mbox (Message-Id %s)", messageID)
+					} else if err := lib.ExportMessage(msg, mboxFile.Writer); err != nil {
 						lib.Log.Errorf("%s", err)
 						continue
+					} else {
+						exportedCount++
+						if messageID != "" {
+							mboxFile.Add(messageID)
+						}
 					}
-					exportedCount++
 				}
 
 				deletedAttachments := 0

@@ -103,14 +103,11 @@ func TestCreateMBOXAndExportMessage(t *testing.T) {
 		t.Fatalf("expected mbox file at %s", wantPath)
 	}
 
-	if _, err := CreateMBOX("Archive/Client"); err == nil {
-		t.Fatal("CreateMBOX() expected error when file exists")
-	}
-
-	raw := "From: alice@example.com\r\nTo: bob@example.com\r\nSubject: Hello\r\n\r\nBody text\r\n"
+	raw := "From: alice@example.com\r\nTo: bob@example.com\r\nSubject: Hello\r\nMessage-Id: <first@example.com>\r\n\r\nBody text\r\n"
 	msg := &imap.Message{
 		Envelope: &imap.Envelope{
-			From: []*imap.Address{{MailboxName: "alice", HostName: "example.com"}},
+			From:      []*imap.Address{{MailboxName: "alice", HostName: "example.com"}},
+			MessageId: "<first@example.com>",
 		},
 		InternalDate: time.Date(2024, 6, 1, 12, 0, 0, 0, time.UTC),
 		Body: map[*imap.BodySectionName]imap.Literal{
@@ -125,6 +122,37 @@ func TestCreateMBOXAndExportMessage(t *testing.T) {
 		t.Fatalf("Close() error = %v", err)
 	}
 
+	// Reopening the same mailbox should append rather than error, and should
+	// index the Message-Id already written so a resumed run can skip it.
+	mboxFile2, err := CreateMBOX("Archive/Client")
+	if err != nil {
+		t.Fatalf("CreateMBOX() reopen error = %v", err)
+	}
+	if !mboxFile2.Contains("<first@example.com>") {
+		t.Fatal("Contains() = false for already-exported Message-Id, want true")
+	}
+	if mboxFile2.Contains("<second@example.com>") {
+		t.Fatal("Contains() = true for unseen Message-Id, want false")
+	}
+
+	raw2 := "From: carol@example.com\r\nTo: bob@example.com\r\nSubject: Second\r\nMessage-Id: <second@example.com>\r\n\r\nMore text\r\n"
+	msg2 := &imap.Message{
+		Envelope: &imap.Envelope{
+			From:      []*imap.Address{{MailboxName: "carol", HostName: "example.com"}},
+			MessageId: "<second@example.com>",
+		},
+		InternalDate: time.Date(2024, 6, 2, 12, 0, 0, 0, time.UTC),
+		Body: map[*imap.BodySectionName]imap.Literal{
+			&imap.BodySectionName{}: bytes.NewReader([]byte(raw2)),
+		},
+	}
+	if err := ExportMessage(msg2, mboxFile2.Writer); err != nil {
+		t.Fatalf("ExportMessage() error = %v", err)
+	}
+	if err := mboxFile2.Close(); err != nil {
+		t.Fatalf("Close() error = %v", err)
+	}
+
 	data, err := os.ReadFile(wantPath)
 	if err != nil {
 		t.Fatal(err)
@@ -134,10 +162,46 @@ func TestCreateMBOXAndExportMessage(t *testing.T) {
 		t.Fatalf("mbox missing From line, got:\n%s", content)
 	}
 	if !strings.Contains(content, "Subject: Hello") {
-		t.Fatalf("mbox missing message headers, got:\n%s", content)
+		t.Fatalf("mbox missing first message headers, got:\n%s", content)
 	}
 	if !strings.Contains(content, "Body text") {
-		t.Fatalf("mbox missing body, got:\n%s", content)
+		t.Fatalf("mbox missing first message body, got:\n%s", content)
+	}
+	if !strings.Contains(content, "Subject: Second") {
+		t.Fatalf("mbox missing appended message headers, got:\n%s", content)
+	}
+	if !strings.Contains(content, "More text") {
+		t.Fatalf("mbox missing appended message body, got:\n%s", content)
+	}
+	if got := strings.Count(content, "Message-Id:"); got != 2 {
+		t.Fatalf("mbox has %d Message-Id headers, want 2 (first + appended, no duplicate)", got)
+	}
+}
+
+func TestCreateMBOXUsesExportPath(t *testing.T) {
+	saveDir := t.TempDir()
+	exportDir := t.TempDir()
+
+	origSave, origExport := Config.SavePath, Config.ExportPath
+	Config.SavePath = saveDir
+	Config.ExportPath = exportDir
+	defer func() {
+		Config.SavePath = origSave
+		Config.ExportPath = origExport
+	}()
+
+	mboxFile, err := CreateMBOX("INBOX")
+	if err != nil {
+		t.Fatalf("CreateMBOX() error = %v", err)
+	}
+	defer mboxFile.Close()
+
+	wantPath := path.Join(exportDir, "INBOX", "mbox")
+	if !FileExists(wantPath) {
+		t.Fatalf("expected mbox file at export_path %s", wantPath)
+	}
+	if FileExists(path.Join(saveDir, "INBOX", "mbox")) {
+		t.Fatal("mbox file should not be written under save_path when export_path is set")
 	}
 }
 
