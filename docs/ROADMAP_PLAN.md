@@ -2,40 +2,17 @@
 
 Опора: [docs/ROADMAP.md](../docs/ROADMAP.md). Порядок — как в suggested order. Rewrite — отдельная поздняя фаза без изменений API текущих релизов.
 
+`export_mailbox` follow-ups (resume по Message-ID, `export_path`, Homebrew formula) — shipped, см. [CHANGELOG](CHANGELOG.md).
+
 ```mermaid
 flowchart LR
-  export[1_ExportFollowups] --> oauth[2_OAuth]
-  oauth --> downscale[3_Downscale]
-  downscale --> rewrite[4_Rewrite]
+  oauth[1_OAuth] --> downscale[2_Downscale]
+  downscale --> rewrite[3_Rewrite]
 ```
 
 ---
 
-## 1. `export_mailbox` follow-ups
-
-**Status: shipped** (branch `claude/export-mailbox-followups-ud5a0x`) — see [CHANGELOG](CHANGELOG.md#unreleased).
-
-Текущее поведение: [`CreateMBOX`](../lib/utils.go) **падает**, если `mbox` уже есть — resume невозможен.
-
-### 1a. Resume по Message-ID
-- При открытии существующего mbox: просканировать заголовки, собрать set `Message-ID`.
-- `ExportMessage`: если ID уже в set — skip; иначе append (`O_APPEND`).
-- Сообщения без Message-ID: всегда писать (или dedupe по UID+mailbox в sidecar — проще всегда писать и логировать).
-- Dry-run: считать would-export / would-skip.
-
-### 1b. Отдельный путь экспорта
-- В `YamlConfig` / `Rule`: `export_path` (override `save_path` только для mbox). Default = `save_path`.
-- `CreateMBOX` принимает base path.
-
-### 1c. Homebrew formula
-- Добавить formula (tap или PR в homebrew-core позже): bottle из GitHub releases `mixeme/imap-scrub`, version sync с тегом.
-- Кратко в README (Install).
-
-**Файлы:** [`lib/utils.go`](../lib/utils.go), [`lib/config.go`](../lib/config.go), [`main.go`](../main.go), тесты mbox resume, `Formula/imap-scrub.rb` или docs для tap.
-
----
-
-## 2. OAuth login ([#10](https://github.com/axllent/imap-scrub/issues/10))
+## 1. OAuth login ([#10](https://github.com/axllent/imap-scrub/issues/10))
 
 **Проблема:** только `Login(user, pass)` в [`main.go`](../main.go) / [`lib/connection.go`](../lib/connection.go).
 
@@ -53,7 +30,7 @@ flowchart LR
 
 ---
 
-## 3. Attachment downscaling ([#10](https://github.com/axllent/imap-scrub/issues/10))
+## 2. Attachment downscaling ([#10](https://github.com/axllent/imap-scrub/issues/10))
 
 **Решение:**
 - Новое действие `downscale_attachments` **или** опции правила: `downscale_images: true`, `downscale_max_px`, `downscale_quality` (JPEG). Несовместимо с `delete`; совместимо с `save_attachments` (сохранять оригинал до сжатия).
@@ -65,7 +42,7 @@ flowchart LR
 
 ---
 
-## 4. Broader rewrite (long term)
+## 3. Broader rewrite (long term)
 
 Не в ближайших релизах. Цели из [#10](https://github.com/axllent/imap-scrub/issues/10): более гибкий pipeline правил, меньше «монолитного» `main.go`.
 
@@ -73,7 +50,7 @@ flowchart LR
 - Вынести rule engine: `Search → Filter → Action pipeline` как отдельные интерфейсы.
 - Плагиноподобные actions (`delete`, `strip`, `export`, `downscale`) без роста `HandleMessage`.
 - Сохранить YAML-совместимость v1 или явный `version: 2` в конфиге.
-- До rewrite — только точечные рефакторы под фазы 1–3 (auth interface и т.п.).
+- До rewrite — только точечные рефакторы под фазы 1–2 (auth interface и т.п.).
 
 ---
 
@@ -81,7 +58,6 @@ flowchart LR
 
 | Релиз | Содержание |
 | --- | --- |
-| 0.3.0 | Export resume + `export_path` + Homebrew |
 | 0.4.0 | OAuth2 (Gmail) |
 | 0.5.0 | Image downscaling |
 | 1.x | Rewrite / config v2 |
