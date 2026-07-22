@@ -2,6 +2,8 @@
 package lib
 
 import (
+	"errors"
+	"fmt"
 	"os"
 	"path"
 	"strings"
@@ -21,19 +23,34 @@ var (
 	}
 )
 
+// Supported values for the `auth` config option.
+const (
+	authPassword = "password"
+	authOAuth2   = "oauth2"
+)
+
 // YamlConfig config struct
 type YamlConfig struct {
-	Name       string `yaml:"name"`
-	Host       string `yaml:"host"`
-	SSL        *bool  `yaml:"ssl"`
-	Port       *int   `yaml:"port"`
-	User       string `yaml:"user"`
-	Pass       string `yaml:"pass"`
-	PassFile   string `yaml:"pass_file"`
-	SavePath   string `yaml:"save_path"`
-	ExportPath string `yaml:"export_path"`
-	UseTrash   bool   `yaml:"use_trash"`
-	Rules      []Rule `yaml:"rules"`
+	Name     string `yaml:"name"`
+	Host     string `yaml:"host"`
+	SSL      *bool  `yaml:"ssl"`
+	Port     *int   `yaml:"port"`
+	User     string `yaml:"user"`
+	Pass     string `yaml:"pass"`
+	PassFile string `yaml:"pass_file"`
+	// Auth selects the IMAP login mechanism: "password" (default) or "oauth2".
+	Auth              string `yaml:"auth"`
+	OAuthClientID     string `yaml:"oauth_client_id"`
+	OAuthClientSecret string `yaml:"oauth_client_secret"`
+	OAuthTokenFile    string `yaml:"oauth_token_file"`
+	// Endpoint overrides for non-Gmail providers; all default to Gmail.
+	OAuthAuthURL  string `yaml:"oauth_auth_url"`
+	OAuthTokenURL string `yaml:"oauth_token_url"`
+	OAuthScope    string `yaml:"oauth_scope"`
+	SavePath      string `yaml:"save_path"`
+	ExportPath    string `yaml:"export_path"`
+	UseTrash      bool   `yaml:"use_trash"`
+	Rules         []Rule `yaml:"rules"`
 }
 
 // Rule struct
@@ -76,8 +93,8 @@ func ReadConfig(file string) {
 		}
 	}
 
-	if Config.User == "" || Config.Pass == "" || Config.Host == "" {
-		Log.Error("Please ensure host, user & password (or pass_file) are set")
+	if err := ValidateAuth(&Config); err != nil {
+		Log.Error(err.Error())
 		os.Exit(2)
 	}
 
@@ -133,6 +150,37 @@ func ReadConfig(file string) {
 	}
 }
 
+// ValidateAuth normalises cfg.Auth and checks that the credentials the chosen
+// mechanism needs are present. OAuth2 configs do not need a password.
+func ValidateAuth(cfg *YamlConfig) error {
+	cfg.Auth = strings.ToLower(strings.TrimSpace(cfg.Auth))
+	if cfg.Auth == "" {
+		cfg.Auth = authPassword
+	}
+
+	if cfg.User == "" || cfg.Host == "" {
+		return errors.New("please ensure host & user are set")
+	}
+
+	switch cfg.Auth {
+	case authPassword:
+		if cfg.Pass == "" {
+			return errors.New("please ensure password (or pass_file) is set")
+		}
+	case authOAuth2:
+		if cfg.OAuthClientID == "" || cfg.OAuthClientSecret == "" {
+			return errors.New("auth: oauth2 requires oauth_client_id & oauth_client_secret")
+		}
+		if cfg.OAuthTokenFile == "" {
+			return errors.New("auth: oauth2 requires oauth_token_file")
+		}
+	default:
+		return fmt.Errorf("\"%s\" is not a valid auth, use \"%s\" or \"%s\"", cfg.Auth, authPassword, authOAuth2)
+	}
+
+	return nil
+}
+
 // ApplyPassFile loads the password from cfg.PassFile into cfg.Pass.
 func ApplyPassFile(cfg *YamlConfig) error {
 	passFile := path.Clean(cfg.PassFile)
@@ -148,9 +196,14 @@ const secretMask = "**********"
 
 // MaskSecrets redacts password fields for -p / print-config output.
 func MaskSecrets(cfg *YamlConfig) {
-	cfg.Pass = secretMask
+	if cfg.Pass != "" {
+		cfg.Pass = secretMask
+	}
 	if cfg.PassFile != "" {
 		cfg.PassFile = secretMask
+	}
+	if cfg.OAuthClientSecret != "" {
+		cfg.OAuthClientSecret = secretMask
 	}
 }
 

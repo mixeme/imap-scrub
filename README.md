@@ -49,11 +49,13 @@ brew install --HEAD imap-scrub
 Usage: imap-scrub [options] <config.yml>
 
 Options:
-  -y, --yes            do actions (based on config rule actions)
-  -m, --mailboxes      list mailboxes on server (helpful for configuration)
-  -p, --print-config   print config
-  -u, --update         update to latest release version
-  -v, --version        show app version
+  -y, --yes              do actions (based on config rule actions)
+  -m, --mailboxes        list mailboxes on server (helpful for configuration)
+  -p, --print-config     print config
+      --oauth-setup      authorize OAuth2 access and write the refresh token to oauth_token_file
+      --oauth-headless   with --oauth-setup, print the URL instead of opening a browser
+  -u, --update           update to latest release version
+  -v, --version          show app version
 ```
 
 Without `-y` / `--yes`, IMAP-Scrub only lists matching messages (dry run). Pass `-y` to apply the configured actions.
@@ -61,9 +63,9 @@ Without `-y` / `--yes`, IMAP-Scrub only lists matching messages (dry run). Pass 
 
 ## Configuration
 
-Each mail account should have a yaml configuration file. IMAP-Scrub does not currently support OAUTH, so username/password IMAP login is required.
+Each mail account should have a yaml configuration file. IMAP-Scrub supports both username/password login (default) and OAuth2 — see [Option: `auth: oauth2`](#option-auth-oauth2).
 
-For Gmail with 2-Step Verification, use an [App Password](https://support.google.com/accounts/answer/185833) instead of your normal account password.
+For Gmail with 2-Step Verification, the simplest option is an [App Password](https://support.google.com/accounts/answer/185833) instead of your normal account password. Use OAuth2 if your account or organisation has App Passwords disabled.
 
 ### Example config
 
@@ -109,6 +111,14 @@ port:        993    # IMAP port number (default 993 if SSL is true, else 143)
 user:        string # IMAP username
 pass:        string # IMAP password (use either pass or pass_file)
 pass_file:   string # path to file containing IMAP password (optional, takes precedence over pass)
+auth:        password # login mechanism: password (default) or oauth2 (see below)
+# OAuth2 options, only used when auth: oauth2
+oauth_client_id:     string # OAuth2 client ID
+oauth_client_secret: string # OAuth2 client secret
+oauth_token_file:    string # path to the token file written by -oauth-setup
+oauth_auth_url:      string # authorization endpoint (default: Google)
+oauth_token_url:     string # token endpoint (default: Google)
+oauth_scope:         string # requested scope (default: https://mail.google.com/)
 save_path:   string # local directory to save attachments and mbox exports (default current dir)
 export_path: string # local directory for export_mailbox mbox files (default: save_path)
 use_trash:   false  # see below
@@ -127,6 +137,69 @@ rules:
     include_starred: false  # include starred messages (default false)
     keep_signatures: true   # preserve S/MIME signed messages on remove_attachments (default true)
 ```
+
+
+### Option: `auth: oauth2`
+
+Setting `auth: oauth2` logs in with `AUTHENTICATE XOAUTH2` instead of a password. This is the option to use when App Passwords are unavailable (e.g. a Google Workspace account where an admin has disabled them).
+
+Authorization is a **one-off setup step** that produces a refresh token. Normal runs afterwards only read that token file and exchange it for a short-lived access token, so **no browser is needed on the machine doing the scrubbing** — it works fine from cron, a server or CI.
+
+#### 1. Create OAuth2 credentials
+
+In the [Google Cloud Console](https://console.cloud.google.com/apis/credentials), enable the Gmail API for a project, then create an OAuth client ID of type **Desktop app**. Note the client ID and client secret. If your app is in "Testing" mode, add your own address under **Audience → Test users**.
+
+#### 2. Configure
+
+```yaml
+name: My Gmail Account
+host: imap.gmail.com
+user: example-user@gmail.com
+auth: oauth2
+oauth_client_id: 1234567890-abcdef.apps.googleusercontent.com
+oauth_client_secret: GOCSPX-your-client-secret
+oauth_token_file: /home/me/.secrets/gmail-oauth.json
+save_path: /home/me/email-files
+rules:
+  - mailbox: "[Gmail]/All Mail"
+    older_than: 365
+    actions: remove_attachments
+```
+
+No `pass` / `pass_file` is required when `auth: oauth2` is set.
+
+#### 3. Authorize
+
+Run the setup once. It opens a browser on this machine, catches the redirect on a local loopback port, and writes the refresh token to `oauth_token_file` (mode `0600`):
+
+```bash
+imap-scrub --oauth-setup config.yml
+```
+
+If the machine has no browser (a server, a container, an SSH session), use the headless flow instead. It prints the URL for you to open on any other device and waits for you to paste the resulting code — or the whole redirect URL — back in:
+
+```bash
+imap-scrub --oauth-setup --oauth-headless config.yml
+```
+
+`OAUTH_HEADLESS=1` in the environment is equivalent to `--oauth-headless`. The headless flow uses the out-of-band redirect URI `urn:ietf:wg:oauth:2.0:oob`, which must be registered on the client; if your provider rejects it, run the interactive setup on a desktop machine instead and copy the resulting `oauth_token_file` to the headless host — the runtime path is identical.
+
+After setup, run IMAP-Scrub as usual. Refresh tokens are long-lived but not permanent: if the token is revoked or expires, login fails with a refresh error and you re-run `--oauth-setup`.
+
+**Security recommendation:** the token file grants full mailbox access — keep it at mode `0600` in a `0700` directory, same as `pass_file` below.
+
+#### Other providers
+
+The defaults target Gmail. Other XOAUTH2 providers work by overriding the endpoints, e.g. Outlook:
+
+```yaml
+auth: oauth2
+oauth_auth_url: https://login.microsoftonline.com/common/oauth2/v2.0/authorize
+oauth_token_url: https://login.microsoftonline.com/common/oauth2/v2.0/token
+oauth_scope: https://outlook.office.com/IMAP.AccessAsUser.All offline_access
+```
+
+Only Gmail is covered by the project's testing.
 
 
 ### Option: `pass_file`
