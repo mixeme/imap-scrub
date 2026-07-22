@@ -97,7 +97,7 @@ pass_file: string # path to file containing IMAP password (optional, takes prece
 save_path: string # local directory to save attachments and mbox exports (default current dir)
 use_trash: false  # see below
 rules:
-  - mailbox:         string # IMAP mailbox name see below)
+  - mailbox:         string # IMAP mailbox name, or '*'/'%' wildcard pattern matching several (see below)
     min_size:        0      # minimum message size in kB
     older_than:      0      # older than x days (see below)
     newer_than:      0      # newer than x days (see below)
@@ -154,6 +154,16 @@ from: billing@example.com, invoices@example.com, receipts@example.com
 The mailbox you wish to search. On standard IMAP servers this is probably `INBOX`.
 
 On Gmail this is possibly `[Gmail]/All Mail` or `[Google Mail]/All Mail`, but may differ based on your selected language. To list the mailboxes on your IMAP server to make a choice, run `imap-scrub -m <your-config.yml>` which will print out all mailboxes in your account.
+
+`mailbox` also accepts IMAP's own wildcards so one rule can apply to many folders: `*` matches zero or more characters including the hierarchy delimiter, and `%` matches zero or more characters but stops at the delimiter (e.g. `INBOX.*` matches `INBOX` and every folder below it; `INBOX.%` matches only its direct children). Non-selectable mailboxes (e.g. Gmail's `[Gmail]` parent) are skipped automatically.
+
+Example:
+
+```yaml
+- mailbox: "INBOX.*"  # every folder under INBOX, any depth
+  older_than: 90
+  actions: delete
+```
 
 
 ### Option: `use_trash`
