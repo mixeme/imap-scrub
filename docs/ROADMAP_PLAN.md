@@ -15,6 +15,15 @@ flowchart LR
 
 ## 1. Preserve S/MIME on `remove_attachments` ([#6](https://github.com/axllent/imap-scrub/issues/6))
 
+**Статус: ✅ Shipped** ([#15](https://github.com/mixeme/imap-scrub/pull/15), в `[Unreleased]` → релиз `0.2.0`).
+
+**Как реализовано (отличия от плана):**
+- Флаг называется `keep_signatures` (`*bool`, default `true`) в YAML → поле `Rule.PreserveSMIME` + метод [`Rule.KeepSignatures()`](../lib/config.go); дефолт проставляется в `ReadConfig`.
+- Детекция вынесена в [`lib/smime.go`](../lib/smime.go) `IsSMIMEProtected`: `application/pkcs7-mime` (`smime.p7m` / `smime.p7z`), standalone `application/pkcs7-signature` (`smime.p7s`), `multipart/signed` с pkcs7-протоколом, плюс `x-pkcs7-*` алиасы.
+- **Отличие от плана:** вместо «переписать S/MIME-часть as-is, а остальные вложения удалить» — при S/MIME-типе на верхнем уровне [`HandleMessage`](../lib/parser.go) **пропускает всё сообщение** (возвращает ошибку-skip). Это корректнее: у `multipart/signed` удаление любой соседней части всё равно ломает подпись, поэтому попартовый подход из плана не сохранил бы её. `save_attachments` для таких частей не вызывается автоматически (сообщение не обрабатывается).
+- Тесты: [`lib/parser_test.go`](../lib/parser_test.go) (skip multipart/signed, skip opaque pkcs7-mime, strip при `keep_signatures: false`), [`lib/smime_test.go`](../lib/smime_test.go), [`lib/config_test.go`](../lib/config_test.go) (дефолт `true`).
+- Документация: README (`keep_signatures`) + [CHANGELOG](CHANGELOG.md) `[Unreleased]`.
+
 **Проблема:** в [`lib/parser.go`](../lib/parser.go) все `AttachmentHeader`-части попадают в `deleted` и не копируются обратно в MIME — подписи `smime.p7m` / `.p7s` / `.p7z` уничтожаются.
 
 **Решение:**
@@ -29,6 +38,16 @@ flowchart LR
 ---
 
 ## 2. Regex / glob `mailbox` ([#9](https://github.com/axllent/imap-scrub/issues/9))
+
+**Статус: ✅ Shipped** ([#16](https://github.com/mixeme/imap-scrub/pull/16), в `[Unreleased]` → релиз `0.2.0`).
+
+**Как реализовано (отличия от плана):**
+- **Отличие от плана:** вместо client-side `path.Match` (`*` / `?` / `[`) + optional `/regex/` использованы **нативные IMAP LIST-вайлдкарды** (`*` — включая разделитель иерархии, `%` — в пределах уровня; RFC 3501 §6.3.8). Матчинг выполняет сам сервер через `LIST`, без перечисления всех папок клиентом. `?` / `[...]` и regex **не поддерживаются** (regex в плане был помечен как optional).
+- Хелперы в [`lib/mailboxes.go`](../lib/mailboxes.go): `IsMailboxPattern` (есть ли `*` / `%`) и `ExpandMailboxPattern` (plain-имя → as-is; паттерн → `LIST`, пропуск `\Noselect`, сортировка для детерминизма).
+- В [`main.go`](../main.go) правило разворачивается в N конкретных mailbox до `Select`; пустой матч — **не fatal**: skip + `continue` (лог на уровне Debug, не Warning — небольшое отличие от плана).
+- `-m` без изменений. Soft-validate в `config.go` (был optional) не добавлялся.
+- Тесты: `TestIsMailboxPattern` (unit) + `TestIntegrationExpandMailboxPattern` (integration: вайлдкард + plain-passthrough).
+- Документация: README (раздел `mailbox`) + [CHANGELOG](CHANGELOG.md) `[Unreleased]`.
 
 **Проблема:** один `rule.Mailbox` → один `Select` в [`main.go`](../main.go) (~140).
 
@@ -110,7 +129,7 @@ flowchart LR
 
 | Релиз | Содержание |
 | --- | --- |
-| 0.2.0 | S/MIME + multi-mailbox glob/regex |
+| 0.2.0 | ✅ S/MIME ([#15](https://github.com/mixeme/imap-scrub/pull/15)) + multi-mailbox IMAP-вайлдкарды ([#16](https://github.com/mixeme/imap-scrub/pull/16)) — в `[Unreleased]` |
 | 0.3.0 | Export resume + `export_path` + Homebrew |
 | 0.4.0 | OAuth2 (Gmail) |
 | 0.5.0 | Image downscaling |

@@ -4,6 +4,15 @@ Planned work for `mixeme/imap-scrub`, tracked against [axllent/imap-scrub issues
 
 Shipped changes are in [Changelog](CHANGELOG.md).
 
+## Recently shipped
+
+Phase 1 & 2 of the [plan](ROADMAP_PLAN.md) are complete (currently in `[Unreleased]`, targeting `0.2.0`):
+
+| Source | Summary | Notes |
+| --- | --- | --- |
+| [#6](https://github.com/axllent/imap-scrub/issues/6) | Preserve S/MIME signed messages on `remove_attachments` | New per-rule `keep_signatures` (default `true`); S/MIME messages are skipped whole rather than having parts stripped, since removing any part invalidates the signature |
+| [#9](https://github.com/axllent/imap-scrub/issues/9) | Multi-folder rules via `mailbox` wildcards | Uses native IMAP `LIST` wildcards (`*` / `%`); one rule expands to every matching folder. (No regex — server-side globbing only) |
+
 ## Features
 
 | Source | Summary | Notes |
