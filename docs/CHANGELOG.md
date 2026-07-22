@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.3.0] — S/MIME preservation & multi-mailbox rules
+
 - `export_mailbox` follow-ups (see [docs/ROADMAP_PLAN.md](ROADMAP_PLAN.md#3-export_mailbox-follow-ups)):
   - Reruns now **resume** instead of failing: if the mbox file already exists, matching messages are appended to it and any message whose `Message-Id` is already in the file is skipped, so a rule can be safely repeated (e.g. from cron) without duplicating exports. Dry run (no `-y`) reports would-export / would-skip counts by checking the existing mbox read-only.
   - New `export_path` config option writes `mbox` files to a directory separate from `save_path` (used for attachments); falls back to `save_path` when unset.
