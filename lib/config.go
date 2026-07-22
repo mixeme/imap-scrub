@@ -23,16 +23,17 @@ var (
 
 // YamlConfig config struct
 type YamlConfig struct {
-	Name     string `yaml:"name"`
-	Host     string `yaml:"host"`
-	SSL      *bool  `yaml:"ssl"`
-	Port     *int   `yaml:"port"`
-	User     string `yaml:"user"`
-	Pass     string `yaml:"pass"`
-	PassFile string `yaml:"pass_file"`
-	SavePath string `yaml:"save_path"`
-	UseTrash bool   `yaml:"use_trash"`
-	Rules    []Rule `yaml:"rules"`
+	Name       string `yaml:"name"`
+	Host       string `yaml:"host"`
+	SSL        *bool  `yaml:"ssl"`
+	Port       *int   `yaml:"port"`
+	User       string `yaml:"user"`
+	Pass       string `yaml:"pass"`
+	PassFile   string `yaml:"pass_file"`
+	SavePath   string `yaml:"save_path"`
+	ExportPath string `yaml:"export_path"`
+	UseTrash   bool   `yaml:"use_trash"`
+	Rules      []Rule `yaml:"rules"`
 }
 
 // Rule struct

@@ -63,6 +63,32 @@ This writes:
 - `dist/imap-scrub-darwin-arm64` (Apple Silicon)
 
 
+## Homebrew formula
+
+[`Formula/imap-scrub.rb`](../Formula/imap-scrub.rb) lets users `brew tap mixeme/imap-scrub https://github.com/mixeme/imap-scrub && brew install imap-scrub` directly from this repo — no separate `homebrew-*` tap repo needed.
+
+Stable installs download the prebuilt `imap-scrub-<os>-<arch>.tar.gz` binaries that [`build-release.yml`](../.github/workflows/build-release.yml) already attaches to each GitHub release, so `brew install imap-scrub` needs no Go toolchain. `--HEAD` builds `develop` from source instead (`depends_on "go"` only applies there).
+
+When cutting a new release, bump the formula's `version` and the `url`/`sha256` pair for each of the four supported platforms (darwin-arm64, darwin-amd64, linux-amd64, linux-arm64) once the release binaries are uploaded:
+
+```sh
+for asset in darwin-arm64 darwin-amd64 linux-amd64 linux-arm64; do
+  curl -sL -o "/tmp/imap-scrub-$asset.tar.gz" \
+    "https://github.com/mixeme/imap-scrub/releases/download/v<new-version>/imap-scrub-$asset.tar.gz"
+  echo "$asset: $(sha256sum "/tmp/imap-scrub-$asset.tar.gz" | awk '{print $1}')"
+done
+```
+
+Test locally before pushing:
+
+```sh
+brew install ./Formula/imap-scrub.rb          # prebuilt binary path
+brew install --HEAD ./Formula/imap-scrub.rb   # source build path
+brew test imap-scrub
+brew audit --strict --online ./Formula/imap-scrub.rb
+```
+
+
 ## Nix flake
 
 With [Nix](https://nixos.org/) and flakes enabled:

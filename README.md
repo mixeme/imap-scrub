@@ -27,6 +27,21 @@ You can also update an existing install with:
 imap-scrub -u
 ```
 
+### Homebrew (Linux & macOS)
+
+The formula lives in this repo, so tap it directly (no separate `homebrew-*` repo needed):
+
+```sh
+brew tap mixeme/imap-scrub https://github.com/mixeme/imap-scrub
+brew install imap-scrub
+```
+
+To build the latest unreleased `develop` branch instead of the last tagged release, pass `--HEAD`:
+
+```sh
+brew install --HEAD imap-scrub
+```
+
 
 ## Usage options
 
@@ -87,15 +102,16 @@ See [All yaml config options](#all-yaml-config-options) below for more info.
 ## All yaml config options
 
 ```yaml
-name:      string # reference name of this account
-host:      string # IMAP hostname
-ssl:       true   # use SSL (default true)
-port:      993    # IMAP port number (default 993 if SSL is true, else 143)
-user:      string # IMAP username
-pass:      string # IMAP password (use either pass or pass_file)
-pass_file: string # path to file containing IMAP password (optional, takes precedence over pass)
-save_path: string # local directory to save attachments and mbox exports (default current dir)
-use_trash: false  # see below
+name:        string # reference name of this account
+host:        string # IMAP hostname
+ssl:         true   # use SSL (default true)
+port:        993    # IMAP port number (default 993 if SSL is true, else 143)
+user:        string # IMAP username
+pass:        string # IMAP password (use either pass or pass_file)
+pass_file:   string # path to file containing IMAP password (optional, takes precedence over pass)
+save_path:   string # local directory to save attachments and mbox exports (default current dir)
+export_path: string # local directory for export_mailbox mbox files (default: save_path)
+use_trash:   false  # see below
 rules:
   - mailbox:         string # IMAP mailbox name, or '*'/'%' wildcard pattern matching several (see below)
     min_size:        0      # minimum message size in kB
@@ -190,13 +206,27 @@ There are four possible actions, namely:
   `save_path/<YYYY-MM-DD>/<sender>/<to-<recipient>__subj-<short-subject>__uid-<uid>>/<hash>-<filename>`
 - `remove_attachments` will remove the all attachments and inline images from the original email
 - `delete` will simply delete the email
-- `export_mailbox` will write matching messages to a local `mbox` file under `save_path/<mailbox-path>/mbox` (nested IMAP mailbox names become directories)
+- `export_mailbox` will write matching messages to a local `mbox` file under `export_path/<mailbox-path>/mbox` (`save_path` is used if `export_path` isn't set; nested IMAP mailbox names become directories)
 
 The `actions:` config may include a combination of `save_attachments` and one other (comma-separated), eg :`actions: save_attachments, remove_attachments`.
 
 `export_mailbox` can be used alone or combined with other actions (for example export then `delete`).
 
 **Note** that you cannot combine `remove_attachments` and `delete`.
+
+
+### Option: `export_path`
+
+By default `export_mailbox` writes its `mbox` files under `save_path`, alongside saved attachments. Set `export_path` to send exports to a separate directory instead:
+
+```yaml
+save_path: /home/me/attachments
+export_path: /home/me/mailbox-backups
+```
+
+If the mbox file for a mailbox already exists, `export_mailbox` **appends** to it instead of failing, and skips any message whose `Message-Id` is already in the file. This makes it safe to rerun the same rule repeatedly (e.g. from a cron job) without duplicating messages already exported.
+
+Without `-y` (dry run), IMAP-Scrub still checks the mbox file (read-only) and reports how many matching messages would be newly exported vs. already present, so you can preview a resumed export before applying it.
 
 
 ### Option: `keep_signatures`

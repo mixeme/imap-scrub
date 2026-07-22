@@ -44,6 +44,8 @@ flowchart LR
 
 ## 3. `export_mailbox` follow-ups
 
+**Status: shipped** (branch `claude/export-mailbox-followups-ud5a0x`) — see [CHANGELOG](CHANGELOG.md#unreleased).
+
 Текущее поведение: [`CreateMBOX`](../lib/utils.go) **падает**, если `mbox` уже есть — resume невозможен.
 
 ### 3a. Resume по Message-ID
