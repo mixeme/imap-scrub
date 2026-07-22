@@ -45,6 +45,12 @@ func HandleMessage(msg *imap.Message, rule Rule) (string, int, error) {
 		return "", 0, err
 	}
 
+	if rule.RemoveAttachments() && rule.KeepSignatures() {
+		if ct, params, _ := mr.Header.ContentType(); IsSMIMEProtected(ct, params) {
+			return "", 0, fmt.Errorf("S/MIME signed message, skipping remove_attachments to preserve signature (set keep_signatures: false to override)")
+		}
+	}
+
 	var b bytes.Buffer
 
 	mw, err := mail.CreateWriter(&b, mr.Header)
