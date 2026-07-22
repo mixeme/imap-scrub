@@ -12,7 +12,7 @@
     }:
     let
       pname = "imap-scrub";
-      version = "0.1.1";
+      version = "0.1.2";
       src = ./.;
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
