@@ -271,6 +271,21 @@ func (m *MBOXFile) Add(messageID string) {
 	m.existingIDs[messageID] = true
 }
 
+// mboxPaths returns the export_path/<mailbox-path> directory and its "mbox"
+// file path for mailboxName, falling back to save_path when export_path is
+// unset. It performs no I/O.
+func mboxPaths(mailboxName string) (outDir, outFile string) {
+	basePath := Config.ExportPath
+	if basePath == "" {
+		basePath = Config.SavePath
+	}
+
+	mailboxParts := strings.Split(mailboxName, "/")
+	outDir = path.Clean(path.Join(basePath, path.Join(mailboxParts...)))
+	outFile = path.Clean(path.Join(outDir, "mbox"))
+	return outDir, outFile
+}
+
 // CreateMBOX opens export_path/<mailbox-path>/mbox for the given IMAP mailbox
 // name, falling back to save_path when export_path is unset. Nested mailbox
 // names (e.g. "Archive/2024") become nested directories.
@@ -280,18 +295,10 @@ func (m *MBOXFile) Add(messageID string) {
 // MBOXFile.Contains) so a rerun of export_mailbox can resume without
 // re-exporting messages it already wrote.
 func CreateMBOX(mailboxName string) (*MBOXFile, error) {
-	basePath := Config.ExportPath
-	if basePath == "" {
-		basePath = Config.SavePath
-	}
-
-	mailboxParts := strings.Split(mailboxName, "/")
-	outDir := path.Clean(path.Join(basePath, path.Join(mailboxParts...)))
+	outDir, outFile := mboxPaths(mailboxName)
 	if err := CreateDir(outDir); err != nil {
 		return nil, err
 	}
-
-	outFile := path.Clean(path.Join(outDir, "mbox"))
 
 	existingIDs, err := scanMBOXMessageIDs(outFile)
 	if err != nil {
@@ -312,6 +319,15 @@ func CreateMBOX(mailboxName string) (*MBOXFile, error) {
 		file:        file,
 		existingIDs: existingIDs,
 	}, nil
+}
+
+// PreviewMBOXExport reports the Message-Id headers already exported for
+// mailboxName's mbox file, without creating any directories or files. It
+// lets a dry run (no -y) report accurate would-export / would-skip counts
+// for export_mailbox the same way a real run would resume.
+func PreviewMBOXExport(mailboxName string) (map[string]bool, error) {
+	_, outFile := mboxPaths(mailboxName)
+	return scanMBOXMessageIDs(outFile)
 }
 
 // scanMBOXMessageIDs reads an existing mbox file, if any, and returns the set

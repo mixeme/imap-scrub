@@ -2,10 +2,10 @@
 
 ## [Unreleased]
 
-- `export_mailbox` follow-ups:
-  - Reruns now **resume** instead of failing: if the mbox file already exists, matching messages are appended to it and any message whose `Message-Id` is already in the file is skipped, so a rule can be safely repeated (e.g. from cron) without duplicating exports.
+- `export_mailbox` follow-ups (see [docs/ROADMAP_PLAN.md](ROADMAP_PLAN.md#3-export_mailbox-follow-ups)):
+  - Reruns now **resume** instead of failing: if the mbox file already exists, matching messages are appended to it and any message whose `Message-Id` is already in the file is skipped, so a rule can be safely repeated (e.g. from cron) without duplicating exports. Dry run (no `-y`) reports would-export / would-skip counts by checking the existing mbox read-only.
   - New `export_path` config option writes `mbox` files to a directory separate from `save_path` (used for attachments); falls back to `save_path` when unset.
-  - Added a Homebrew formula (`Formula/imap-scrub.rb`) — `brew tap mixeme/imap-scrub https://github.com/mixeme/imap-scrub && brew install imap-scrub`.
+  - Added a Homebrew formula (`Formula/imap-scrub.rb`) — `brew tap mixeme/imap-scrub https://github.com/mixeme/imap-scrub && brew install imap-scrub`. Stable installs use the prebuilt binaries already attached to each GitHub release (no Go toolchain needed); `--HEAD` builds `develop` from source.
 - `mailbox` now accepts IMAP `*` / `%` wildcard patterns ([#9](https://github.com/axllent/imap-scrub/issues/9)), so one rule can apply to many folders (e.g. `mailbox: "INBOX.*"`). Plain mailbox names behave exactly as before.
 - `remove_attachments` now preserves S/MIME signed messages by default ([#6](https://github.com/axllent/imap-scrub/issues/6)): skips `application/pkcs7-mime` (`smime.p7m` / `smime.p7z`) and `multipart/signed` (`smime.p7s`) messages instead of stripping their signature parts. New per-rule `keep_signatures` option (default `true`) restores the previous behaviour when set to `false`.
 

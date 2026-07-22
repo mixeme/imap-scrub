@@ -271,11 +271,22 @@ func main() {
 
 			// Create mbox only after we know there are matching UIDs (avoids empty files / leaks).
 			var mboxFile *lib.MBOXFile
-			if doActions && rule.ExportMailbox() {
-				mboxFile, err = lib.CreateMBOX(mailboxName)
-				if err != nil {
-					lib.Log.Errorf(err.Error())
-					continue
+			// Dry run (no -y): preview which Message-Ids are already exported so we can
+			// report accurate would-export / would-skip counts without touching disk.
+			var previewExportIDs map[string]bool
+			if rule.ExportMailbox() {
+				if doActions {
+					mboxFile, err = lib.CreateMBOX(mailboxName)
+					if err != nil {
+						lib.Log.Errorf(err.Error())
+						continue
+					}
+				} else {
+					previewExportIDs, err = lib.PreviewMBOXExport(mailboxName)
+					if err != nil {
+						lib.Log.Errorf(err.Error())
+						continue
+					}
 				}
 			}
 
@@ -309,6 +320,8 @@ func main() {
 			// total size of all matching emails
 			var totalSize uint32
 			exportedCount := 0
+			wouldExportCount := 0
+			wouldSkipCount := 0
 
 			for msg := range messages {
 				// IMAP BEFORE/SINCE are date-only and may return messages near the cutoff
@@ -326,13 +339,22 @@ func main() {
 
 				totalSize = totalSize + msg.Size
 
-				if doActions && rule.ExportMailbox() {
+				if rule.ExportMailbox() {
 					messageID := ""
 					if msg.Envelope != nil {
 						messageID = msg.Envelope.MessageId
 					}
+					if messageID == "" {
+						lib.Log.DebugF(" - Message has no Message-Id, cannot dedupe it on a rerun")
+					}
 
-					if messageID != "" && mboxFile.Contains(messageID) {
+					if !doActions {
+						if messageID != "" && previewExportIDs[messageID] {
+							wouldSkipCount++
+						} else {
+							wouldExportCount++
+						}
+					} else if messageID != "" && mboxFile.Contains(messageID) {
 						lib.Log.DebugF(" - Skipping export, already in mbox (Message-Id %s)", messageID)
 					} else if err := lib.ExportMessage(msg, mboxFile.Writer); err != nil {
 						lib.Log.Errorf("%s", err)
@@ -408,6 +430,13 @@ func main() {
 				if exportedCount > 0 {
 					lib.Log.NoticeF("Exported %d messages from \"%s\" to mbox", exportedCount, mailboxName)
 				}
+			}
+
+			if !doActions && rule.ExportMailbox() && (wouldExportCount > 0 || wouldSkipCount > 0) {
+				lib.Log.NoticeF(
+					"Would export %d messages from \"%s\" to mbox (%d already exported, would skip)",
+					wouldExportCount, mailboxName, wouldSkipCount,
+				)
 			}
 
 			if totalSize > 0 {

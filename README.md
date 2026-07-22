@@ -226,6 +226,8 @@ export_path: /home/me/mailbox-backups
 
 If the mbox file for a mailbox already exists, `export_mailbox` **appends** to it instead of failing, and skips any message whose `Message-Id` is already in the file. This makes it safe to rerun the same rule repeatedly (e.g. from a cron job) without duplicating messages already exported.
 
+Without `-y` (dry run), IMAP-Scrub still checks the mbox file (read-only) and reports how many matching messages would be newly exported vs. already present, so you can preview a resumed export before applying it.
+
 
 ### Option: `keep_signatures`
 
