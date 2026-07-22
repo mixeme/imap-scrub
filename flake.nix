@@ -20,9 +20,7 @@
     {
       packages.${system}.default = pkgs.buildGoModule {
         inherit src pname version;
-        # Stale since golang.org/x/oauth2 was added — run `nix build` once and
-        # paste the reported `got:` hash here.
-        vendorHash = nixpkgs.lib.fakeHash;
+        vendorHash = "sha256-P0p5mB0eT01u1AK3E6O5eQQUuCA5d9i069XNQQPi4Q4=";
       };
 
       devShells.${system} = {

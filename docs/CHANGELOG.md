@@ -16,7 +16,7 @@
 
 - Add `golang.org/x/oauth2` (pinned to `v0.30.0`; `v0.36.0` raises the go directive to 1.25, and the project targets 1.23). Google's endpoints are hardcoded as defaults rather than importing `oauth2/google`, which would pull in `cloud.google.com/go/compute/metadata`.
 - `github.com/emersion/go-sasl` promoted from an indirect to a direct dependency (used by the handshake tests); no new modules.
-- Nix flake `vendorHash` reset to `lib.fakeHash` — run `nix build` once and paste the reported `got:` hash
+- Nix flake `vendorHash` updated for the new dependency
 
 ## [0.3.0] — S/MIME preservation & multi-mailbox rules
 
