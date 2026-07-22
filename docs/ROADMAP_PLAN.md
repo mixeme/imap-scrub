@@ -6,13 +6,23 @@
 
 ```mermaid
 flowchart LR
-  oauth[1_OAuth] --> downscale[2_Downscale]
+  oauth[1_OAuth_shipped] --> downscale[2_Downscale]
   downscale --> rewrite[3_Rewrite]
 ```
 
 ---
 
-## 1. OAuth login ([#10](https://github.com/axllent/imap-scrub/issues/10))
+## 1. OAuth login ([#10](https://github.com/axllent/imap-scrub/issues/10)) — shipped
+
+Реализовано, см. [CHANGELOG](CHANGELOG.md). Отличия от плана ниже:
+
+- `go-sasl` содержит только OAUTHBEARER, XOAUTH2 в нём нет — механизм реализован в `lib/oauth.go` (`Xoauth2Client`, ~20 строк).
+- Добавлена зависимость `golang.org/x/oauth2` (закреплена на `v0.30.0`: `v0.36.0` поднимает go directive до 1.25). Endpoint'ы Google заданы константами, чтобы не тянуть `oauth2/google` с `cloud.google.com/go/compute/metadata`.
+- Сверх плана: `oauth_auth_url` / `oauth_token_url` / `oauth_scope` — переопределение endpoint'ов для не-Gmail провайдеров (Outlook и т.п.).
+- Валидация вынесена в `lib.ValidateAuth()`; `MaskSecrets` теперь прячет `oauth_client_secret`.
+
+<details>
+<summary>Исходный план</summary>
 
 **Проблема:** только `Login(user, pass)` в [`main.go`](../main.go) / [`lib/connection.go`](../lib/connection.go).
 
@@ -27,6 +37,8 @@ flowchart LR
 - README: заменить «OAUTH не поддерживается»; описать оба setup-режима; App Password как альтернативу.
 
 **Файлы:** [`lib/connection.go`](../lib/connection.go), [`lib/config.go`](../lib/config.go), новый `lib/oauth.go`, [`main.go`](../main.go), README.
+
+</details>
 
 ---
 
@@ -58,7 +70,7 @@ flowchart LR
 
 | Релиз | Содержание |
 | --- | --- |
-| 0.4.0 | OAuth2 (Gmail) |
+| 0.4.0 | OAuth2 (Gmail) — готово в `develop` |
 | 0.5.0 | Image downscaling |
 | 1.x | Rewrite / config v2 |
 

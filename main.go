@@ -28,6 +28,7 @@ var (
 func main() {
 	var configFile string
 	var listMailboxes, printConfig, showVersion, update bool
+	var oauthSetup, oauthHeadless bool
 	var headersOnly = true
 
 	flag := pflag.NewFlagSet(os.Args[0], pflag.ExitOnError)
@@ -45,6 +46,8 @@ func main() {
 	flag.BoolVarP(&doActions, "yes", "y", false, "do actions (based on config rule actions)")
 	flag.BoolVarP(&listMailboxes, "mailboxes", "m", false, "list mailboxes on server (helpful for configuration)")
 	flag.BoolVarP(&printConfig, "print-config", "p", false, "print config")
+	flag.BoolVar(&oauthSetup, "oauth-setup", false, "authorize OAuth2 access and write the refresh token to oauth_token_file")
+	flag.BoolVar(&oauthHeadless, "oauth-headless", false, "with --oauth-setup, print the URL instead of opening a browser")
 	flag.BoolVarP(&update, "update", "u", false, "update to latest release version")
 	flag.BoolVarP(&showVersion, "version", "v", false, "show app version")
 	// avoid 'pflag: help requested' error, as help will be defined later by cobra cmd.Execute()
@@ -96,6 +99,32 @@ func main() {
 		os.Exit(0)
 	}
 
+	if oauthSetup {
+		if !lib.Config.UseOAuth2() {
+			lib.Log.Error("--oauth-setup requires \"auth: oauth2\" in the config")
+			os.Exit(2)
+		}
+		if os.Getenv("OAUTH_HEADLESS") != "" {
+			oauthHeadless = true
+		}
+		if err := lib.OAuthSetup(oauthHeadless); err != nil {
+			lib.Log.Error(err.Error())
+			os.Exit(2)
+		}
+		os.Exit(0)
+	}
+
+	// Fetch one access token up front and share it between both connections,
+	// rather than hitting the token endpoint twice.
+	var accessToken string
+	if lib.Config.UseOAuth2() {
+		var err error
+		if accessToken, err = lib.OAuthAccessToken(); err != nil {
+			lib.Log.Error(err.Error())
+			os.Exit(2)
+		}
+	}
+
 	imapServer := fmt.Sprintf("%s:%d", lib.Config.Host, *lib.Config.Port)
 
 	lib.Log.DebugF("Connecting to %s...", imapServer)
@@ -108,11 +137,11 @@ func main() {
 	defer cWriter.Logout()
 
 	// Login
-	if err := cReader.Login(lib.Config.User, lib.Config.Pass); err != nil {
+	if err := lib.Authenticate(cReader, accessToken); err != nil {
 		lib.Log.Errorf("%v", err)
 		os.Exit(2)
 	}
-	if err := cWriter.Login(lib.Config.User, lib.Config.Pass); err != nil {
+	if err := lib.Authenticate(cWriter, accessToken); err != nil {
 		lib.Log.Errorf("%v", err)
 		os.Exit(2)
 	}

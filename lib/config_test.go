@@ -70,6 +70,93 @@ func TestMaskSecretsLeavesEmptyPassFile(t *testing.T) {
 	}
 }
 
+func TestMaskSecretsRedactsOAuthClientSecret(t *testing.T) {
+	cfg := YamlConfig{OAuthClientID: "public-id", OAuthClientSecret: "real-secret"}
+	MaskSecrets(&cfg)
+	if cfg.OAuthClientSecret != secretMask {
+		t.Fatalf("OAuthClientSecret = %q, want %q", cfg.OAuthClientSecret, secretMask)
+	}
+	// The client ID is not a secret, so it should stay readable.
+	if cfg.OAuthClientID != "public-id" {
+		t.Fatalf("OAuthClientID = %q, want public-id", cfg.OAuthClientID)
+	}
+}
+
+func TestValidateAuth(t *testing.T) {
+	base := YamlConfig{Host: "imap.example.com", User: "user@example.com"}
+
+	withPass := base
+	withPass.Pass = "secret"
+
+	oauth := base
+	oauth.Auth = "oauth2"
+	oauth.OAuthClientID = "id"
+	oauth.OAuthClientSecret = "secret"
+	oauth.OAuthTokenFile = "/tmp/token.json"
+
+	oauthNoSecret := oauth
+	oauthNoSecret.OAuthClientSecret = ""
+
+	oauthNoTokenFile := oauth
+	oauthNoTokenFile.OAuthTokenFile = ""
+
+	mixedCase := oauth
+	mixedCase.Auth = " OAuth2 "
+
+	tests := []struct {
+		name    string
+		cfg     YamlConfig
+		wantErr bool
+	}{
+		{"password by default", withPass, false},
+		{"password with no pass", base, true},
+		{"oauth2 needs no password", oauth, false},
+		{"oauth2 missing client secret", oauthNoSecret, true},
+		{"oauth2 missing token file", oauthNoTokenFile, true},
+		{"auth is case & space insensitive", mixedCase, false},
+		{"unknown auth", YamlConfig{Host: "h", User: "u", Pass: "p", Auth: "kerberos"}, true},
+		{"missing host", YamlConfig{User: "u", Pass: "p"}, true},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := tc.cfg
+			err := ValidateAuth(&cfg)
+			if tc.wantErr && err == nil {
+				t.Fatal("ValidateAuth() = nil, want an error")
+			}
+			if !tc.wantErr && err != nil {
+				t.Fatalf("ValidateAuth() error = %v", err)
+			}
+		})
+	}
+}
+
+func TestValidateAuthDefaultsToPassword(t *testing.T) {
+	cfg := YamlConfig{Host: "imap.example.com", User: "user@example.com", Pass: "secret"}
+	if err := ValidateAuth(&cfg); err != nil {
+		t.Fatalf("ValidateAuth() error = %v", err)
+	}
+	if cfg.Auth != authPassword {
+		t.Fatalf("Auth = %q, want %q", cfg.Auth, authPassword)
+	}
+	if cfg.UseOAuth2() {
+		t.Fatal("UseOAuth2() = true, want false for the default auth")
+	}
+}
+
+func TestUseOAuth2(t *testing.T) {
+	if !(YamlConfig{Auth: "oauth2"}).UseOAuth2() {
+		t.Fatal("UseOAuth2() = false for auth: oauth2")
+	}
+	if (YamlConfig{Auth: "password"}).UseOAuth2() {
+		t.Fatal("UseOAuth2() = true for auth: password")
+	}
+	if (YamlConfig{}).UseOAuth2() {
+		t.Fatal("UseOAuth2() = true for an unset auth")
+	}
+}
+
 func TestRuleKeepSignaturesDefaultsToTrue(t *testing.T) {
 	r := Rule{}
 	if !r.KeepSignatures() {

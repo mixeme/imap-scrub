@@ -28,3 +28,14 @@ func Connect() *client.Client {
 
 	return c
 }
+
+// Authenticate logs a client in using the mechanism selected by the config.
+// For OAuth2 the caller supplies an access token from OAuthAccessToken() so a
+// single token can be shared between the reader and writer connections.
+func Authenticate(c *client.Client, accessToken string) error {
+	if Config.UseOAuth2() {
+		return c.Authenticate(&Xoauth2Client{Username: Config.User, Token: accessToken})
+	}
+
+	return c.Login(Config.User, Config.Pass)
+}

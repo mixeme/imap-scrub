@@ -2,6 +2,22 @@
 
 ## [Unreleased]
 
+- **OAuth2 login** ([#10](https://github.com/axllent/imap-scrub/issues/10), see [docs/ROADMAP_PLAN.md](ROADMAP_PLAN.md#1-oauth-login)): new `auth: oauth2` config option authenticates with `AUTHENTICATE XOAUTH2` instead of a password, for accounts where App Passwords are unavailable. Configured via `oauth_client_id`, `oauth_client_secret` and `oauth_token_file`; `pass` / `pass_file` are not required. Defaults target Gmail, and `oauth_auth_url` / `oauth_token_url` / `oauth_scope` override the endpoints for other providers.
+  - Authorization is a one-off `--oauth-setup` step. Normal runs only read the token file and refresh the access token, so **no browser is needed on the machine running IMAP-Scrub** — cron, servers and CI work unchanged. A rotated refresh token is written back to disk automatically.
+  - `--oauth-setup` opens a browser locally and catches the redirect on a loopback port. `--oauth-headless` (or `OAUTH_HEADLESS=1`) instead prints the URL to open on another device and accepts the code — or the full redirect URL — pasted back on stdin. Token files are written mode `0600`.
+- `-p` / `--print-config` now redacts `oauth_client_secret`, and no longer prints a masked `pass` when no password is configured.
+
+### Tests
+
+- OAuth2 coverage runs in the existing unit job — no new CI secrets or network access. Token refresh and refresh-token rotation are tested against an in-process `httptest` endpoint, and the XOAUTH2 handshake against a real in-process IMAP server (`go-imap`'s `server` package + memory backend) so the wire format is verified over an actual `AUTHENTICATE` exchange rather than only asserted as a string.
+- The interactive and headless `--oauth-setup` flows are not automated; they were verified manually against a stub provider.
+
+### Dependencies
+
+- Add `golang.org/x/oauth2` (pinned to `v0.30.0`; `v0.36.0` raises the go directive to 1.25, and the project targets 1.23). Google's endpoints are hardcoded as defaults rather than importing `oauth2/google`, which would pull in `cloud.google.com/go/compute/metadata`.
+- `github.com/emersion/go-sasl` promoted from an indirect to a direct dependency (used by the handshake tests); no new modules.
+- Nix flake `vendorHash` updated for the new dependency
+
 ## [0.3.0] — S/MIME preservation & multi-mailbox rules
 
 - `export_mailbox` follow-ups (see [docs/ROADMAP_PLAN.md](ROADMAP_PLAN.md#3-export_mailbox-follow-ups)):
