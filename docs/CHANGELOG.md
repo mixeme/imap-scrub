@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- `remove_attachments` now preserves S/MIME signed messages by default ([#6](https://github.com/axllent/imap-scrub/issues/6)): skips `application/pkcs7-mime` (`smime.p7m` / `smime.p7z`) and `multipart/signed` (`smime.p7s`) messages instead of stripping their signature parts. New per-rule `keep_signatures` option (default `true`) restores the previous behaviour when set to `false`.
+
 ## [0.1.1] — dependency refresh
 
 ### Dependencies

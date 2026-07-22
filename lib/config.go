@@ -49,6 +49,7 @@ type Rule struct {
 	Actions        string `yaml:"actions"`
 	IncludeUnread  bool   `yaml:"include_unread"`
 	IncludeStarred bool   `yaml:"include_starred"`
+	PreserveSMIME  *bool  `yaml:"keep_signatures"` // default true, see Rule.KeepSignatures()
 }
 
 // ReadConfig reads & parses the config into global config
@@ -95,6 +96,11 @@ func ReadConfig(file string) {
 	// change kB to bytes
 	for x, item := range Config.Rules {
 		Config.Rules[x].Size = item.Size * 1024
+
+		if item.PreserveSMIME == nil {
+			keep := true
+			Config.Rules[x].PreserveSMIME = &keep
+		}
 
 		if item.Mailbox == "" {
 			Log.Error("You must specify a mailbox for every rule")
@@ -165,4 +171,12 @@ func (r Rule) SaveAttachments() bool {
 // ExportMailbox returns whether a rule is set to export matching messages to mbox
 func (r Rule) ExportMailbox() bool {
 	return strings.Contains(r.Actions, "export_mailbox")
+}
+
+// KeepSignatures returns whether S/MIME signed messages (RFC 8551: smime.p7m,
+// smime.p7s, smime.p7z) should be left untouched by remove_attachments rather
+// than having their signature parts stripped like ordinary attachments.
+// Defaults to true.
+func (r Rule) KeepSignatures() bool {
+	return r.PreserveSMIME == nil || *r.PreserveSMIME
 }

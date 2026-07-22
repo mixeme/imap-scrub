@@ -109,6 +109,7 @@ rules:
     actions:         string # see below
     include_unread:  false  # include unread messages (default false)
     include_starred: false  # include starred messages (default false)
+    keep_signatures: true   # preserve S/MIME signed messages on remove_attachments (default true)
 ```
 
 
@@ -186,6 +187,15 @@ The `actions:` config may include a combination of `save_attachments` and one ot
 `export_mailbox` can be used alone or combined with other actions (for example export then `delete`).
 
 **Note** that you cannot combine `remove_attachments` and `delete`.
+
+
+### Option: `keep_signatures`
+
+By default (`keep_signatures: true`), `remove_attachments` skips S/MIME signed messages entirely rather than stripping their signature parts.
+
+An S/MIME signed message is either an opaque `application/pkcs7-mime` message (`smime.p7m` / `smime.p7z`, [RFC 8551](https://www.rfc-editor.org/rfc/rfc8551)) or a `multipart/signed` message with a `smime.p7s` signature part. Rewriting either to remove attachments would invalidate the signature, so imap-scrub leaves the message untouched on the server and logs that it was skipped.
+
+Set `keep_signatures: false` to disable this and fall back to the previous behaviour, where `smime.p7s` / `smime.p7m` / `smime.p7z` parts are treated like any other attachment and removed.
 
 
 ### Option: `older_than` / `newer_than`
