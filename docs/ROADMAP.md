@@ -8,7 +8,6 @@ Shipped changes are in [Changelog](CHANGELOG.md).
 
 | Source | Summary | Notes |
 | --- | --- | --- |
-| [#9](https://github.com/axllent/imap-scrub/issues/9) | Regex or glob `mailbox`; apply one rule to many folders | e.g. `mailbox: "INBOX.*"`. Workaround: `-m` → YAML list → generate rules externally ([comment](https://github.com/axllent/imap-scrub/issues/9#issuecomment-3167450004)) |
 | [#10](https://github.com/axllent/imap-scrub/issues/10) | OAuth login (mainly Gmail) | Password IMAP only today |
 | [#10](https://github.com/axllent/imap-scrub/issues/10) | Downscale attachments instead of removing | Smaller in-message copy for large images (incl. inline) |
 | — | `export_mailbox` follow-ups | Resume append by Message-ID; separate export path; Homebrew formula |
@@ -16,8 +15,7 @@ Shipped changes are in [Changelog](CHANGELOG.md).
 
 ### Suggested order
 
-1. Regex / multi-mailbox ([#9](https://github.com/axllent/imap-scrub/issues/9))
-2. `export_mailbox` follow-ups
-3. OAuth ([#10](https://github.com/axllent/imap-scrub/issues/10))
-4. Attachment downscaling ([#10](https://github.com/axllent/imap-scrub/issues/10))
-5. Rewrite ([#10](https://github.com/axllent/imap-scrub/issues/10))
+1. `export_mailbox` follow-ups
+2. OAuth ([#10](https://github.com/axllent/imap-scrub/issues/10))
+3. Attachment downscaling ([#10](https://github.com/axllent/imap-scrub/issues/10))
+4. Rewrite ([#10](https://github.com/axllent/imap-scrub/issues/10))

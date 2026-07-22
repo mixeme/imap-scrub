@@ -332,6 +332,68 @@ func TestIntegrationNewerThanIgnoresEnvelopeDate(t *testing.T) {
 	}
 }
 
+func TestIntegrationExpandMailboxPattern(t *testing.T) {
+	c := connectIntegration(t)
+
+	// Discover this server's hierarchy delimiter under INBOX so the test works
+	// against any backend (Dovecot defaults to "."; others use "/").
+	mailboxes := make(chan *imap.MailboxInfo, 10)
+	done := make(chan error, 1)
+	go func() { done <- c.List("", "INBOX", mailboxes) }()
+	var delim string
+	for m := range mailboxes {
+		delim = m.Delimiter
+	}
+	if err := <-done; err != nil {
+		t.Fatalf("list INBOX: %v", err)
+	}
+	if delim == "" {
+		delim = "."
+	}
+
+	parent := "INBOX" + delim + "imap-scrub-test-pattern"
+	childA := parent + delim + "alpha"
+	childB := parent + delim + "beta"
+
+	for _, mbox := range []string{childA, childB, parent} {
+		_ = c.Delete(mbox) // best-effort cleanup from a previous failed run
+	}
+	for _, mbox := range []string{parent, childA, childB} {
+		if err := c.Create(mbox); err != nil {
+			t.Fatalf("create %s: %v", mbox, err)
+		}
+	}
+	t.Cleanup(func() {
+		for _, mbox := range []string{childA, childB, parent} {
+			_ = c.Delete(mbox)
+		}
+	})
+
+	got, err := ExpandMailboxPattern(c, parent+delim+"*")
+	if err != nil {
+		t.Fatalf("ExpandMailboxPattern: %v", err)
+	}
+
+	want := map[string]bool{parent: true, childA: true, childB: true}
+	if len(got) != len(want) {
+		t.Fatalf("ExpandMailboxPattern(%q) = %v, want members of %v", parent+delim+"*", got, want)
+	}
+	for _, name := range got {
+		if !want[name] {
+			t.Fatalf("ExpandMailboxPattern returned unexpected mailbox %q", name)
+		}
+	}
+
+	// A plain, non-wildcard name is returned as-is without a LIST round trip.
+	plain, err := ExpandMailboxPattern(c, "INBOX")
+	if err != nil {
+		t.Fatalf("ExpandMailboxPattern(INBOX): %v", err)
+	}
+	if len(plain) != 1 || plain[0] != "INBOX" {
+		t.Fatalf("ExpandMailboxPattern(INBOX) = %v, want [INBOX]", plain)
+	}
+}
+
 func TestIntegrationExportMailbox(t *testing.T) {
 	c := connectIntegration(t)
 	if _, err := c.Select("INBOX", true); err != nil {
