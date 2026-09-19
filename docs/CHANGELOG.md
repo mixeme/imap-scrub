@@ -8,6 +8,10 @@
   - `--oauth-setup` opens a browser locally and catches the redirect on a loopback port. `--oauth-headless` (or `OAUTH_HEADLESS=1`) instead prints the URL to open on another device and accepts the code — or the full redirect URL — pasted back on stdin. Token files are written mode `0600`.
 - `-p` / `--print-config` now redacts `oauth_client_secret`, and no longer prints a masked `pass` when no password is configured.
 
+### CI
+
+- Release binary builds now run on `release.published` (not `created`), so publishing a draft release uploads the Go binaries.
+
 ### Tests
 
 - OAuth2 coverage runs in the existing unit job — no new CI secrets or network access. Token refresh and refresh-token rotation are tested against an in-process `httptest` endpoint, and the XOAUTH2 handshake against a real in-process IMAP server (`go-imap`'s `server` package + memory backend) so the wire format is verified over an actual `AUTHENTICATE` exchange rather than only asserted as a string.
