@@ -47,7 +47,7 @@ func HandleMessage(msg *imap.Message, rule Rule) (string, int, error) {
 
 	if rule.RemoveAttachments() && rule.KeepSignatures() {
 		if ct, params, _ := mr.Header.ContentType(); IsSMIMEProtected(ct, params) {
-			return "", 0, fmt.Errorf("S/MIME signed message, skipping remove_attachments to preserve signature (set keep_signatures: false to override)")
+			return "", 0, fmt.Errorf("signed message (S/MIME or OpenPGP), skipping remove_attachments to preserve signature (set keep_signatures: false to override)")
 		}
 	}
 

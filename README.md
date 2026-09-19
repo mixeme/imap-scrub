@@ -135,7 +135,7 @@ rules:
     actions:         string # see below
     include_unread:  false  # include unread messages (default false)
     include_starred: false  # include starred messages (default false)
-    keep_signatures: true   # preserve S/MIME signed messages on remove_attachments (default true)
+    keep_signatures: true   # preserve S/MIME/OpenPGP signed messages on remove_attachments (default true)
 ```
 
 
@@ -304,11 +304,13 @@ Without `-y` (dry run), IMAP-Scrub still checks the mbox file (read-only) and re
 
 ### Option: `keep_signatures`
 
-By default (`keep_signatures: true`), `remove_attachments` skips S/MIME signed messages entirely rather than stripping their signature parts.
+By default (`keep_signatures: true`), `remove_attachments` skips cryptographically signed messages entirely rather than stripping their signature parts.
 
-An S/MIME signed message is either an opaque `application/pkcs7-mime` message (`smime.p7m` / `smime.p7z`, [RFC 8551](https://www.rfc-editor.org/rfc/rfc8551)) or a `multipart/signed` message with a `smime.p7s` signature part. Rewriting either to remove attachments would invalidate the signature, so imap-scrub leaves the message untouched on the server and logs that it was skipped.
+This includes S/MIME ([RFC 8551](https://www.rfc-editor.org/rfc/rfc8551)): opaque `application/pkcs7-mime` (`smime.p7m` / `smime.p7z`) or `multipart/signed` with an `smime.p7s` part; and OpenPGP ([RFC 3156](https://www.rfc-editor.org/rfc/rfc3156)): `multipart/signed` with `protocol=application/pgp-signature` or a standalone `application/pgp-signature` body. Rewriting any of these to remove attachments would invalidate the signature, so imap-scrub leaves the message untouched on the server and logs that it was skipped.
 
-Set `keep_signatures: false` to disable this and fall back to the previous behaviour, where `smime.p7s` / `smime.p7m` / `smime.p7z` parts are treated like any other attachment and removed.
+Set `keep_signatures: false` to disable this and fall back to the previous behaviour, where signature parts (`smime.p7s`, OpenPGP armor blocks, etc.) are treated like any other attachment and removed.
+
+Standalone public-key attachments (armor blocks or `application/pgp-keys` files not part of a signed MIME structure above) are not preserved by `keep_signatures`; they are still removed when `remove_attachments` runs.
 
 
 ### Option: `older_than` / `newer_than`

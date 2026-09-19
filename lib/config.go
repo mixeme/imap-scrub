@@ -227,9 +227,9 @@ func (r Rule) ExportMailbox() bool {
 	return strings.Contains(r.Actions, "export_mailbox")
 }
 
-// KeepSignatures returns whether S/MIME signed messages (RFC 8551: smime.p7m,
-// smime.p7s, smime.p7z) should be left untouched by remove_attachments rather
-// than having their signature parts stripped like ordinary attachments.
+// KeepSignatures returns whether S/MIME (RFC 8551) or OpenPGP (RFC 3156) signed
+// messages should be left untouched by remove_attachments rather than having
+// their signature parts stripped like ordinary attachments.
 // Defaults to true.
 func (r Rule) KeepSignatures() bool {
 	return r.PreserveSMIME == nil || *r.PreserveSMIME

@@ -56,6 +56,28 @@ const multipartSignedMessage = "From: alice@example.com\r\n" +
 	"ZmFrZXNpZ25hdHVyZQ==\r\n" +
 	"--BBB--\r\n"
 
+const multipartOpenPGPSignedMessage = "From: alice@example.com\r\n" +
+	"To: bob@example.com\r\n" +
+	"Subject: OpenPGP signed\r\n" +
+	"MIME-Version: 1.0\r\n" +
+	"Content-Type: multipart/signed; protocol=\"application/pgp-signature\"; micalg=pgp-sha256; boundary=\"CCC\"\r\n" +
+	"\r\n" +
+	"--CCC\r\n" +
+	"Content-Type: text/plain\r\n" +
+	"\r\n" +
+	"Signed content\r\n" +
+	"--CCC\r\n" +
+	"Content-Type: application/pgp-signature\r\n" +
+	"Content-Disposition: attachment; filename=\"signature.asc\"\r\n" +
+	"\r\n" +
+	"-----BEGIN PGP SIGNATURE-----\r\n" +
+	"\r\n" +
+	"iEYEARECAAYFAkl1EZkACgkQ+YXjQAr8dHaLagCeNhE+oO2cfzcHCfP5btHJsHdu\r\n" +
+	"5XgAnigjdhIi3zVlKJvl+4Fwj7/hqRl/\r\n" +
+	"=cacd\r\n" +
+	"-----END PGP SIGNATURE-----\r\n" +
+	"--CCC--\r\n"
+
 const opaquePkcs7MimeMessage = "From: alice@example.com\r\n" +
 	"To: bob@example.com\r\n" +
 	"Subject: Opaque\r\n" +
@@ -98,6 +120,19 @@ func TestHandleMessageSkipsMultipartSignedByDefault(t *testing.T) {
 	}
 }
 
+func TestHandleMessageSkipsMultipartOpenPGPSignedByDefault(t *testing.T) {
+	keep := true
+	rule := Rule{Mailbox: "INBOX", Actions: "remove_attachments", PreserveSMIME: &keep}
+
+	_, count, err := HandleMessage(messageWithBody(multipartOpenPGPSignedMessage), rule)
+	if err == nil {
+		t.Fatal("HandleMessage() expected error (skip) for OpenPGP multipart/signed message, got nil")
+	}
+	if count != 0 {
+		t.Fatalf("HandleMessage() count = %d, want 0", count)
+	}
+}
+
 func TestHandleMessageSkipsOpaquePkcs7MimeByDefault(t *testing.T) {
 	keep := true
 	rule := Rule{Mailbox: "INBOX", Actions: "remove_attachments", PreserveSMIME: &keep}
@@ -124,5 +159,21 @@ func TestHandleMessageStripsSignatureWhenKeepSignaturesDisabled(t *testing.T) {
 	}
 	if strings.Contains(raw, "smime.p7s") {
 		t.Fatalf("expected smime.p7s to be stripped when keep_signatures is false, got:\n%s", raw)
+	}
+}
+
+func TestHandleMessageStripsOpenPGPSignatureWhenKeepSignaturesDisabled(t *testing.T) {
+	noKeep := false
+	rule := Rule{Mailbox: "INBOX", Actions: "remove_attachments", PreserveSMIME: &noKeep}
+
+	raw, count, err := HandleMessage(messageWithBody(multipartOpenPGPSignedMessage), rule)
+	if err != nil {
+		t.Fatalf("HandleMessage() error = %v", err)
+	}
+	if count != 1 {
+		t.Fatalf("HandleMessage() count = %d, want 1", count)
+	}
+	if strings.Contains(raw, "BEGIN PGP SIGNATURE") {
+		t.Fatalf("expected OpenPGP signature to be stripped when keep_signatures is false, got:\n%s", raw)
 	}
 }
