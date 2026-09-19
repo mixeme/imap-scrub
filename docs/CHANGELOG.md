@@ -7,6 +7,7 @@
   - Authorization is a one-off `--oauth-setup` step. Normal runs only read the token file and refresh the access token, so **no browser is needed on the machine running IMAP-Scrub** — cron, servers and CI work unchanged. A rotated refresh token is written back to disk automatically.
   - `--oauth-setup` opens a browser locally and catches the redirect on a loopback port. `--oauth-headless` (or `OAUTH_HEADLESS=1`) instead prints the URL to open on another device and accepts the code — or the full redirect URL — pasted back on stdin. Token files are written mode `0600`.
 - `-p` / `--print-config` now redacts `oauth_client_secret`, and no longer prints a masked `pass` when no password is configured.
+- Homebrew formula stable installs updated from v0.1.0 to **v0.3.0** prebuilt binaries (`Formula/imap-scrub.rb` URLs and checksums for darwin/linux arm64 & amd64).
 
 ### CI
 

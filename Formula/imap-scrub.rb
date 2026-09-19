@@ -2,29 +2,29 @@ class ImapScrub < Formula
   desc "Reduce IMAP mailbox size via configurable search-and-action rules"
   homepage "https://github.com/mixeme/imap-scrub"
   license "MIT"
-  version "0.1.0"
+  version "0.3.0"
 
   # Stable installs use the prebuilt binaries already published on the GitHub
   # release (see .github/workflows/build-release.yml) — no Go toolchain needed.
   on_macos do
     on_arm do
-      url "https://github.com/mixeme/imap-scrub/releases/download/v0.1.0/imap-scrub-darwin-arm64.tar.gz"
-      sha256 "34ec9011351d93f7e9cff1cf4100b975c6d81a10951426ec1d5b58fec8deb65a"
+      url "https://github.com/mixeme/imap-scrub/releases/download/v0.3.0/imap-scrub-darwin-arm64.tar.gz"
+      sha256 "da70ddbbdc28d8ffba30ccefeb8ed7b08a1312f7cfe1f99a216fafd248797f4e"
     end
     on_intel do
-      url "https://github.com/mixeme/imap-scrub/releases/download/v0.1.0/imap-scrub-darwin-amd64.tar.gz"
-      sha256 "f271aeff705cae651f01f031eca7cc0ac828e6884a3bb122c93fcc4402db39c8"
+      url "https://github.com/mixeme/imap-scrub/releases/download/v0.3.0/imap-scrub-darwin-amd64.tar.gz"
+      sha256 "6fe6738aaafb9a616d08baee226b63f53f3fdebd5217ef2a6e16ac81a717af73"
     end
   end
 
   on_linux do
     on_intel do
-      url "https://github.com/mixeme/imap-scrub/releases/download/v0.1.0/imap-scrub-linux-amd64.tar.gz"
-      sha256 "96b16710ab6406c0accb2191de6e3308272ecd77383a282b22439c70e7283f0a"
+      url "https://github.com/mixeme/imap-scrub/releases/download/v0.3.0/imap-scrub-linux-amd64.tar.gz"
+      sha256 "896eacdb3d2742d9d5f32d2cc163d1656e27963fabc1a8b5206a0aaa32a302e0"
     end
     on_arm do
-      url "https://github.com/mixeme/imap-scrub/releases/download/v0.1.0/imap-scrub-linux-arm64.tar.gz"
-      sha256 "245dc38ccabcd54af678fba705add4f2f8054de36882566f3b3b59b605abdc40"
+      url "https://github.com/mixeme/imap-scrub/releases/download/v0.3.0/imap-scrub-linux-arm64.tar.gz"
+      sha256 "419559658d22628ca057529cdcdc5a14f70cdfca27b33a2e5bb7beb6ebd425f4"
     end
   end
 
