@@ -2,9 +2,11 @@
 
 ## [Unreleased]
 
+- `keep_signatures` now also preserves standalone OpenPGP public-key attachments ([#24](https://github.com/mixeme/imap-scrub/issues/24)): armored public keys, `application/pgp-keys`, and typical `.asc` key files are left on the message while other attachments in the same MIME structure are still removed. Signed messages continue to be skipped entirely; set `keep_signatures: false` to strip key attachments too.
+
 ## [0.4.0] — OAuth2 login & OpenPGP signatures
 
-- `keep_signatures` now also preserves OpenPGP signed messages ([#23](https://github.com/mixeme/imap-scrub/issues/23)): `multipart/signed` with `application/pgp-signature` and standalone `application/pgp-signature`, same skip behaviour as S/MIME. Standalone attachments that are only an OpenPGP public key (e.g. `BEGIN PGP PUBLIC KEY BLOCK` in a `.asc` file, `application/pgp-keys`) are **not** covered — `remove_attachments` still removes them like any other attachment; open an issue if you need that preserved.
+- `keep_signatures` now also preserves OpenPGP signed messages ([#23](https://github.com/mixeme/imap-scrub/issues/23)): `multipart/signed` with `application/pgp-signature` and standalone `application/pgp-signature`, same skip behaviour as S/MIME.
 - **OAuth2 login** ([#10](https://github.com/axllent/imap-scrub/issues/10), see [docs/ROADMAP_PLAN.md](ROADMAP_PLAN.md#1-oauth-login)): new `auth: oauth2` config option authenticates with `AUTHENTICATE XOAUTH2` instead of a password, for accounts where App Passwords are unavailable. Configured via `oauth_client_id`, `oauth_client_secret` and `oauth_token_file`; `pass` / `pass_file` are not required. Defaults target Gmail, and `oauth_auth_url` / `oauth_token_url` / `oauth_scope` override the endpoints for other providers.
   - Authorization is a one-off `--oauth-setup` step. Normal runs only read the token file and refresh the access token, so **no browser is needed on the machine running IMAP-Scrub** — cron, servers and CI work unchanged. A rotated refresh token is written back to disk automatically.
   - `--oauth-setup` opens a browser locally and catches the redirect on a loopback port. `--oauth-headless` (or `OAUTH_HEADLESS=1`) instead prints the URL to open on another device and accepts the code — or the full redirect URL — pasted back on stdin. Token files are written mode `0600`.

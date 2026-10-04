@@ -78,6 +78,51 @@ const multipartOpenPGPSignedMessage = "From: alice@example.com\r\n" +
 	"-----END PGP SIGNATURE-----\r\n" +
 	"--CCC--\r\n"
 
+const minimalPGPPublicKeyArmor = "-----BEGIN PGP PUBLIC KEY BLOCK-----\r\n\r\n" +
+	"mQENBFakeKeyIDABC\r\n" +
+	"=abcd\r\n" +
+	"-----END PGP PUBLIC KEY BLOCK-----\r\n"
+
+const mixedWithPublicKeyMessage = "From: alice@example.com\r\n" +
+	"To: bob@example.com\r\n" +
+	"Subject: Key and file\r\n" +
+	"MIME-Version: 1.0\r\n" +
+	"Content-Type: multipart/mixed; boundary=\"DDD\"\r\n" +
+	"\r\n" +
+	"--DDD\r\n" +
+	"Content-Type: text/plain\r\n" +
+	"\r\n" +
+	"See attached key\r\n" +
+	"--DDD\r\n" +
+	"Content-Type: application/octet-stream; name=\"file.bin\"\r\n" +
+	"Content-Disposition: attachment; filename=\"file.bin\"\r\n" +
+	"Content-Transfer-Encoding: base64\r\n" +
+	"\r\n" +
+	"aGVsbG8=\r\n" +
+	"--DDD\r\n" +
+	"Content-Type: application/octet-stream; name=\"pubkey.asc\"\r\n" +
+	"Content-Disposition: attachment; filename=\"pubkey.asc\"\r\n" +
+	"\r\n" +
+	minimalPGPPublicKeyArmor +
+	"--DDD--\r\n"
+
+const onlyPublicKeyMessage = "From: alice@example.com\r\n" +
+	"To: bob@example.com\r\n" +
+	"Subject: Key only\r\n" +
+	"MIME-Version: 1.0\r\n" +
+	"Content-Type: multipart/mixed; boundary=\"EEE\"\r\n" +
+	"\r\n" +
+	"--EEE\r\n" +
+	"Content-Type: text/plain\r\n" +
+	"\r\n" +
+	"My key\r\n" +
+	"--EEE\r\n" +
+	"Content-Type: application/octet-stream; name=\"pubkey.asc\"\r\n" +
+	"Content-Disposition: attachment; filename=\"pubkey.asc\"\r\n" +
+	"\r\n" +
+	minimalPGPPublicKeyArmor +
+	"--EEE--\r\n"
+
 const opaquePkcs7MimeMessage = "From: alice@example.com\r\n" +
 	"To: bob@example.com\r\n" +
 	"Subject: Opaque\r\n" +
@@ -175,5 +220,62 @@ func TestHandleMessageStripsOpenPGPSignatureWhenKeepSignaturesDisabled(t *testin
 	}
 	if strings.Contains(raw, "BEGIN PGP SIGNATURE") {
 		t.Fatalf("expected OpenPGP signature to be stripped when keep_signatures is false, got:\n%s", raw)
+	}
+}
+
+func TestHandleMessagePreservesPublicKeyRemovesOtherAttachments(t *testing.T) {
+	keep := true
+	rule := Rule{Mailbox: "INBOX", Actions: "remove_attachments", PreserveSMIME: &keep}
+
+	raw, count, err := HandleMessage(messageWithBody(mixedWithPublicKeyMessage), rule)
+	if err != nil {
+		t.Fatalf("HandleMessage() error = %v", err)
+	}
+	if count != 1 {
+		t.Fatalf("HandleMessage() count = %d, want 1", count)
+	}
+	if strings.Contains(raw, "file.bin") {
+		t.Fatalf("expected file.bin to be stripped, got:\n%s", raw)
+	}
+	if !strings.Contains(raw, "pubkey.asc") {
+		t.Fatalf("expected public key attachment to remain, got:\n%s", raw)
+	}
+	if !strings.Contains(raw, "attachments-deleted.txt") {
+		t.Fatalf("expected attachments-deleted notice, got:\n%s", raw)
+	}
+}
+
+func TestHandleMessageOnlyPublicKeyUnchangedCount(t *testing.T) {
+	keep := true
+	rule := Rule{Mailbox: "INBOX", Actions: "remove_attachments", PreserveSMIME: &keep}
+
+	raw, count, err := HandleMessage(messageWithBody(onlyPublicKeyMessage), rule)
+	if err != nil {
+		t.Fatalf("HandleMessage() error = %v", err)
+	}
+	if count != 0 {
+		t.Fatalf("HandleMessage() count = %d, want 0", count)
+	}
+	if !strings.Contains(raw, "pubkey.asc") {
+		t.Fatalf("expected public key attachment to remain, got:\n%s", raw)
+	}
+	if strings.Contains(raw, "attachments-deleted.txt") {
+		t.Fatalf("expected no attachments-deleted notice, got:\n%s", raw)
+	}
+}
+
+func TestHandleMessageStripsPublicKeyWhenKeepSignaturesDisabled(t *testing.T) {
+	noKeep := false
+	rule := Rule{Mailbox: "INBOX", Actions: "remove_attachments", PreserveSMIME: &noKeep}
+
+	raw, count, err := HandleMessage(messageWithBody(onlyPublicKeyMessage), rule)
+	if err != nil {
+		t.Fatalf("HandleMessage() error = %v", err)
+	}
+	if count != 1 {
+		t.Fatalf("HandleMessage() count = %d, want 1", count)
+	}
+	if strings.Contains(raw, "BEGIN PGP PUBLIC KEY BLOCK") {
+		t.Fatalf("expected public key to be stripped when keep_signatures is false, got:\n%s", raw)
 	}
 }

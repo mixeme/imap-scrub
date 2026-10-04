@@ -310,7 +310,7 @@ This includes S/MIME ([RFC 8551](https://www.rfc-editor.org/rfc/rfc8551)): opaqu
 
 Set `keep_signatures: false` to disable this and fall back to the previous behaviour, where signature parts (`smime.p7s`, OpenPGP armor blocks, etc.) are treated like any other attachment and removed.
 
-Standalone public-key attachments (armor blocks or `application/pgp-keys` files not part of a signed MIME structure above) are not preserved by `keep_signatures`; they are still removed when `remove_attachments` runs.
+Standalone public-key attachments (armored `BEGIN PGP PUBLIC KEY BLOCK` bodies, `.asc` keys, or `application/pgp-keys` parts that are not part of a signed MIME structure above) are also kept when `keep_signatures` is true: other attachments in the same message are still removed, but the key part is copied through unchanged. With `keep_signatures: false`, those key attachments are removed like any other attachment.
 
 
 ### Option: `older_than` / `newer_than`

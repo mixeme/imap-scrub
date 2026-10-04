@@ -208,17 +208,34 @@ func HandleMessage(msg *imap.Message, rule Rule) (string, int, error) {
 				filename = "text.txt"
 			}
 
-			b, _ := io.ReadAll(p.Body)
+			b, err := io.ReadAll(p.Body)
+			if err != nil {
+				return "", 0, err
+			}
+
+			msgParts++
+
+			ct := p.Header.Get("Content-Type")
+
+			if rule.KeepSignatures() && IsOpenPGPPublicKeyPart(ct, filename, b) {
+				aw, err := mw.CreateAttachment(*h)
+				if err != nil {
+					return "", 0, err
+				}
+				if _, err := aw.Write(b); err != nil {
+					return "", 0, err
+				}
+				if err := aw.Close(); err != nil {
+					return "", 0, err
+				}
+				continue
+			}
 
 			if rule.SaveAttachments() {
 				if filename, err = SaveAttachment(b, emailAddress, filename, origin); err != nil {
 					return "", 0, err
 				}
 			}
-
-			msgParts++
-
-			ct := p.Header.Get("Content-Type")
 
 			size := ByteCountSI(uint32(len(b)))
 

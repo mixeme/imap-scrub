@@ -34,3 +34,42 @@ func TestIsSMIMEProtected(t *testing.T) {
 		})
 	}
 }
+
+func TestIsOpenPGPPublicKeyPart(t *testing.T) {
+	publicKeyBody := "-----BEGIN PGP PUBLIC KEY BLOCK-----\r\n\r\n" +
+		"mQENBFakeKeyIDABC\r\n" +
+		"=abcd\r\n" +
+		"-----END PGP PUBLIC KEY BLOCK-----\r\n"
+	signatureBody := "-----BEGIN PGP SIGNATURE-----\r\n\r\n" +
+		"iEYEARECAAYFAkl1EZkACgkQ\r\n" +
+		"=cacd\r\n" +
+		"-----END PGP SIGNATURE-----\r\n"
+	privateKeyBody := "-----BEGIN PGP PRIVATE KEY BLOCK-----\r\n\r\n" +
+		"fake\r\n" +
+		"-----END PGP PRIVATE KEY BLOCK-----\r\n"
+
+	tests := []struct {
+		name        string
+		contentType string
+		filename    string
+		body        string
+		want        bool
+	}{
+		{"application/pgp-keys", "application/pgp-keys", "key.asc", "binary", true},
+		{"application/pgp-key", "application/pgp-key", "", "", true},
+		{"armored octet-stream", "application/octet-stream", "pubkey.asc", publicKeyBody, true},
+		{"armored text plain", "text/plain", "key.asc", publicKeyBody, true},
+		{"pgp signature armor", "application/octet-stream", "signature.asc", signatureBody, false},
+		{"private key armor", "application/octet-stream", "secret.asc", privateKeyBody, false},
+		{"plain binary", "application/octet-stream", "file.bin", "hello", false},
+		{"public key markers without .asc name", "application/octet-stream", "file.bin", publicKeyBody, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := IsOpenPGPPublicKeyPart(tt.contentType, tt.filename, []byte(tt.body)); got != tt.want {
+				t.Errorf("IsOpenPGPPublicKeyPart() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
