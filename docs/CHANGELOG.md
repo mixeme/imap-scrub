@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.4.1] — OpenPGP public-key attachments
+
 - `keep_signatures` now also preserves standalone OpenPGP public-key attachments ([#24](https://github.com/mixeme/imap-scrub/issues/24)): armored public keys, `application/pgp-keys`, and typical `.asc` key files are left on the message while other attachments in the same MIME structure are still removed. Signed messages continue to be skipped entirely; set `keep_signatures: false` to strip key attachments too.
 
 ## [0.4.0] — OAuth2 login & OpenPGP signatures
